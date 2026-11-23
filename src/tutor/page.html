@@ -113,6 +113,9 @@ main{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);min-he
 .hlist{display:flex;flex-direction:column;gap:8px}
 .inkview{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;display:block}
 .attbtn{margin-left:4px}
+.listen{display:inline-flex;align-items:center;gap:4px;margin-top:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:600;color:var(--accent);min-height:28px}
+.listen[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#voicebtn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:600}
 header.top{grid-row:1} .strip{grid-row:2} main,.screen{grid-row:3}
 .board{position:relative;flex:1;min-height:0;overflow:hidden;background:var(--bg);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .board{touch-action:none}
@@ -138,7 +141,8 @@ canvas#ink{display:block;touch-action:pan-y}
 
 .coach{display:flex;flex-direction:column;min-height:0;background:var(--surface)}
 .pane{display:flex;flex-direction:column;min-height:0;flex:1}
-.coach-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.coach-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.coach-head .minibtn,.coach-head .seg button{white-space:nowrap}
 .coach-head h2{margin:0;font-size:15px;font-weight:600}
 .pill{margin-left:auto;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line);white-space:nowrap}
 .pill.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
@@ -333,6 +337,8 @@ window.MathJax = {
             <button id="tier-careful" aria-pressed="true" title="Reads your work more carefully, takes longer">Careful</button>
             <button id="tier-fast" aria-pressed="false" title="Faster answer, less careful reading">Fast</button>
           </div>
+          <button class="minibtn" id="voicebtn" aria-pressed="false" title="Read the tutor's replies and solutions out loud">🔈 Voice</button>
+          <button class="minibtn" id="ratebtn" title="Speaking speed">1×</button>
           <span class="pill" id="pill">Ready</span>
         </div>
         <div class="feed" id="feed" aria-live="polite"></div>
@@ -892,6 +898,7 @@ async function ask(kind, typed){
   const content = ACTIONS[kind](typed) + (snap ? '\n\n[Picture of my handwritten work attached. Blue ink = new since my last check.]' : '');
   const me = addMsg('me', esc(kind === 'ask' ? typed : LABEL[kind]));
   if (snap){ const im = new Image(); im.alt = 'Your work as sent'; im.src = URL.createObjectURL(snap.blob); me.appendChild(im); }
+  stopSpeaking();
   const bubble = addMsg('tutor', '<span class="thinking">Reading your work…</span>'); peekStart();
   if (mode === 'practice' || mode === 'today'){ ensureAtt(); att[COUNT[kind]] = (att[COUNT[kind]] || 0) + 1; attDirty(); }
   const sentSeq = ink.seq, sentKey = inkKey, sentPid = pid;
@@ -905,6 +912,7 @@ async function ask(kind, typed){
     if (inkKey !== sentKey) return;
     const { st, body, box } = parseReply(res.text);
     bubble.className = 'msg tutor ' + st; renderInto(bubble, body + (res.truncated ? '\n\n*(Cut short. Ask a narrower question.)*' : ''), false); peekDone(st, body);
+    addListen(bubble, body); if (voiceOn) speak(body, bubble);
     const [pt, pc] = PILL[st] || PILL.info; setPill(pt, pc);
     turns.push({ role:'user', content }, { role:'assistant', content: res.text });
     LS.set('dif:chat:' + sentPid, turns.slice(-24));
@@ -954,8 +962,10 @@ $('solbtn').onclick = () => {
   parts.push(`**Answer.** ${p.ans}`);
   if (p.check) parts.push(`**Check.** ${p.check}`);
   const d = addMsg('sol', '', false); renderInto(d, parts.join('\n\n'), false);
+  const spoken = [`Solution to ${p.id}.`, `Key idea: ${p.key}`, ...(p.steps || []).map((s, i) => `Step ${i + 1}. ${s}`), `Answer: ${p.ans}`, p.trap ? `Watch out: ${p.trap}` : ''].join('\n\n');
+  addListen(d, spoken); if (voiceOn) speak(spoken, d);
   if (p.trap){ const t = document.createElement('div'); t.className = 'trap'; d.appendChild(t); renderInto(t, '**Point-loser.** ' + p.trap, false); }
-  addMsg('sys', 'Now redo it from a blank page (Clear) without looking, and mark this try ~.');
+  addMsg('sys', 'Now redo it from a blank page (New attempt) without looking.');
 };
 $('newchat').onclick = () => { turns = []; LS.set('dif:chat:' + pid, []); feed.innerHTML = ''; intro(); };
 
@@ -976,6 +986,7 @@ function renderLog(){
 }
 function intro(){ addMsg('sys', md(`Work **${pid}** on the grid with your Pencil. Tap **Check my work** after each step or two. New ink shows up blue for the tutor, and a wrong line gets circled on your page.`, false)); }
 function openProblem(id){
+  stopSpeaking();
   $('peek').classList.add('hidden');
   if (busy) busy.abort();
   flushAtt();
@@ -989,7 +1000,7 @@ function openProblem(id){
     addMsg('sys', 'Earlier chat on this problem:');
     for (const t of turns.slice(-8)){
       if (t.role === 'user') addMsg('me', esc(t.content.split('\n\n[Picture')[0]));
-      else { const r = parseReply(t.content); addMsg('tutor ' + r.st, r.body, true); }
+      else { const r = parseReply(t.content); const m = addMsg('tutor ' + r.st, r.body, true); addListen(m, r.body); }
     }
   } else intro();
   if (mode === 'today') renderToday();
@@ -1634,6 +1645,101 @@ async function renderAttempt(id){
     replayRAF = requestAnimationFrame(step);
   };
 }
+
+/* ---------------- Voice: the tutor reads replies and solutions out loud (device voice, free) ---------------- */
+const TTS = window.speechSynthesis || null;
+let voiceOn = LS.get('dif:voice', false), voiceRate = LS.get('dif:rate', 1), ttsUnlocked = false, bestVoice = null, speakingEl = null;
+function pickVoice(){
+  if (!TTS) return;
+  const en = TTS.getVoices().filter(v => /^en[-_]/i.test(v.lang));
+  bestVoice = en.find(v => /premium|enhanced|natural|neural/i.test(v.name) && /US|GB/i.test(v.lang)) || en.find(v => /premium|enhanced|natural|neural/i.test(v.name))
+    || en.find(v => /^(Samantha|Ava|Allison|Susan|Zoe|Evan|Nathan|Aria|Jenny|Guy|Google US English)/i.test(v.name)) || en.find(v => /en[-_]US/i.test(v.lang)) || en[0] || null;
+}
+if (TTS){ pickVoice(); try { TTS.addEventListener('voiceschanged', pickVoice); } catch {} }
+// iPad Safari only lets a page speak after a tap has started speech once
+document.addEventListener('pointerdown', () => { if (!TTS || ttsUnlocked) return; try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; TTS.speak(u); ttsUnlocked = true; } catch {} }, true);
+const SAY = [
+  ['\\mathcal{L}^{-1}', ' inverse Laplace of '], ['\\mathcal{L}', ' Laplace of '], ['\\Li', ' inverse Laplace of '], ['\\Lap', ' Laplace of '],
+  ['\\displaystyle', ' '], ['\\left', ' '], ['\\right', ' '], ['\\quad', ' '], ['\\qquad', ' '], ['\\,', ' '], ['\\;', ' '], ['\\!', ''],
+  ['\\int', ' integral of '], ['\\sum', ' sum of '], ['\\infty', ' infinity '], ['\\pi', ' pi '], ['\\lambda', ' lambda '], ['\\mu', ' mu '],
+  ['\\alpha', ' alpha '], ['\\beta', ' beta '], ['\\theta', ' theta '], ['\\omega', ' omega '], ['\\delta', ' delta '], ['\\Delta', ' delta '],
+  ['\\psi', ' psi '], ['\\phi', ' phi '], ['\\rho', ' rho '], ['\\sigma', ' sigma '], ['\\tau', ' tau '], ['\\epsilon', ' epsilon '],
+  ['\\sinh', ' hyperbolic sine '], ['\\cosh', ' hyperbolic cosine '], ['\\sin', ' sine '], ['\\cos', ' cosine '], ['\\tan', ' tangent '],
+  ['\\cot', ' cotangent '], ['\\csc', ' cosecant '], ['\\sec', ' secant '], ['\\arctan', ' arc tangent '], ['\\tan^{-1}', ' arc tangent '],
+  ['\\ln', ' natural log '], ['\\log', ' log '], ['\\exp', ' exponential of '], ['\\cdot', ' times '], ['\\times', ' times '],
+  ['\\leq', ' is at most '], ['\\le', ' is at most '], ['\\geq', ' is at least '], ['\\ge', ' is at least '], ['\\neq', ' is not equal to '], ['\\ne', ' is not equal to '],
+  ['\\to', ' goes to '], ['\\rightarrow', ' gives '], ['\\Rightarrow', ', so '], ['\\implies', ', so '], ['\\pm', ' plus or minus '], ['\\approx', ' is about '],
+  ['\\mathrm', ''], ['\\text', ''], ['\\operatorname', ''], ['\\boxed', ''], ['\\dfrac', '\\frac'], ['\\tfrac', '\\frac'],
+].sort((a, b) => b[0].length - a[0].length);
+function mathToSpeech(s){
+  let x = ' ' + s + ' ';
+  x = x.replace(/(\\[A-Za-z]+)|([A-Za-z]{2,})/g, (m, cmd, run) => cmd ? cmd : run.split('').join(' '));
+  x = x.replace(/\\[dt]?frac\s*(\d)\s*(\d)/g, ' $1 over $2 ');
+  x = x.replace(/([A-Za-z]'*)\s*\((?=[^)]{1,12}\))/g, '$1 of (');
+  for (const [a, b] of SAY) x = x.split(a).join(b);
+  let prev;
+  do { prev = x;
+    x = x.replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, ' $1 over $2 ');
+    x = x.replace(/\\sqrt\{([^{}]*)\}/g, ' square root of $1 ');
+    x = x.replace(/\{([^{}]*)\}/g, ' $1 ');
+  } while (x !== prev);
+  x = x.replace(/y\^\(4\)|y\^\{\(4\)\}/g, ' y fourth derivative ')
+       .replace(/([A-Za-z])''''/g, '$1 fourth derivative ').replace(/([A-Za-z])'''/g, '$1 triple prime ').replace(/([A-Za-z])''/g, '$1 double prime ').replace(/([A-Za-z])'/g, '$1 prime ');
+  x = x.replace(/\^\s*2(?![0-9])/g, ' squared ').replace(/\^\s*3(?![0-9])/g, ' cubed ').replace(/\^\s*(-?[A-Za-z0-9.]+)/g, ' to the $1 ').replace(/_\s*([A-Za-z0-9]+)/g, ' sub $1 ');
+  x = x.replace(/(\d)\s*([a-zA-Z])/g, '$1 $2');
+  x = x.replace(/=/g, ' equals ').replace(/\+/g, ' plus ').replace(/-/g, ' minus ').replace(/</g, ' less than ').replace(/>/g, ' greater than ').replace(/\//g, ' over ').replace(/\*/g, ' times ');
+  x = x.replace(/[\\$&]/g, ' ').replace(/[()[\]]/g, ' ').replace(/\|/g, ' ');
+  return x.replace(/\s+/g, ' ').trim();
+}
+function speechText(md0){
+  let s = String(md0 || '');
+  s = s.replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (_, a, b) => ' ' + mathToSpeech(a || b) + ' ');
+  s = s.replace(/^#+\s*/gm, '').replace(/^\s*[-*•]\s+/gm, '').replace(/^\s*(\d+)[.)]\s+/gm, 'Step $1. ').replace(/[*_`]+/g, '')
+       .replace(/→/g, ' gives ').replace(/✓/g, ' check ').replace(/✗/g, ' wrong ').replace(/≈/g, ' about ').replace(/−/g, ' minus ').replace(/·/g, ', ');
+  return s.replace(/[ \t]+/g, ' ').trim();
+}
+function chunks(text){
+  const out = [];
+  for (const para of text.split(/\n{1,}/)){
+    const sentences = para.match(/[^.!?;:]+[.!?;:]*\s*/g) || [para];
+    let cur = '';
+    for (const sn of sentences){ if ((cur + sn).length > 180 && cur){ out.push(cur.trim()); cur = ''; } cur += sn; }
+    if (cur.trim()) out.push(cur.trim());
+  }
+  return out.filter(Boolean);
+}
+function markSpeaking(el, on){ if (!el) return; const b = el.querySelector(':scope > .listen'); if (b){ b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.textContent = on ? '■ Stop' : '▶ Listen'; } }
+function stopSpeaking(){ if (TTS){ try { TTS.cancel(); } catch {} } markSpeaking(speakingEl, false); speakingEl = null; }
+function speak(text, el){
+  if (!TTS) return;
+  stopSpeaking();
+  const parts = chunks(speechText(text)); if (!parts.length) return;
+  speakingEl = el || null; markSpeaking(speakingEl, true);
+  parts.forEach((c, i) => {
+    const u = new SpeechSynthesisUtterance(c);
+    if (bestVoice){ u.voice = bestVoice; u.lang = bestVoice.lang; } else u.lang = 'en-US';
+    u.rate = voiceRate; u.pitch = 1;
+    if (i === parts.length - 1) u.onend = () => { if (speakingEl === el){ markSpeaking(el, false); speakingEl = null; } };
+    TTS.speak(u);
+  });
+}
+function addListen(el, text){
+  if (!TTS || !el) return;
+  const b = document.createElement('button'); b.className = 'listen'; b.textContent = '▶ Listen'; b.setAttribute('aria-pressed', 'false');
+  b.onclick = () => { if (speakingEl === el) stopSpeaking(); else speak(text, el); };
+  el.appendChild(b);
+}
+function setVoice(on){
+  voiceOn = on; LS.set('dif:voice', on);
+  $('voicebtn').setAttribute('aria-pressed', on ? 'true' : 'false'); $('voicebtn').textContent = on ? '🔊 Voice' : '🔈 Voice';
+  if (!on) stopSpeaking();
+}
+const RATES = [1, 1.2, 1.4, 0.85];
+$('voicebtn').onclick = () => { setVoice(!voiceOn); if (voiceOn) speak('Voice on. I will read my replies and the solutions out loud.'); };
+$('ratebtn').onclick = () => { voiceRate = RATES[(RATES.indexOf(voiceRate) + 1) % RATES.length]; LS.set('dif:rate', voiceRate); $('ratebtn').textContent = voiceRate + '×'; if (speakingEl === null) speak('This is my speaking speed.'); };
+if (!TTS){ $('voicebtn').classList.add('hidden'); $('ratebtn').classList.add('hidden'); }
+setVoice(voiceOn); $('ratebtn').textContent = voiceRate + '×';
+window.__speechText = speechText;
 
 /* ---------------- Collapsible tutor panel + problem box ---------------- */
 const coachHidden = () => $('workmain').classList.contains('nocoach');
