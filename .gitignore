@@ -1,0 +1,6 @@
+node_modules/
+*.png.tmp
+a*.png
+test_app.js
+fake-supabase.js
+icon-preview.png

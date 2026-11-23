@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIF Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Engineering-notebook tutor: graph-paper work surface left, coach right; navy / green / amber like the DIF packets. */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --surface-2:#f5f7fb; --text:#141a26; --muted:#5a6476; --line:#d6dce7;
+  --accent:#1f3864; --accent-ink:#ffffff; --accent-soft:#e3e9f4;
+  --ok:#1e7b3a; --ok-soft:#e6f4ea; --warn:#b45309; --warn-soft:#fff3e0; --bad:#b42318; --bad-soft:#fdecea;
+  --paper:#fdfdfb; --grid:#e6ebf2; --ink:#16202f; --ink-red:#c0262d; --ink-green:#1e7b3a; --flag:#d97706;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1420; --surface:#171e2c; --surface-2:#1d2536; --text:#e6eaf2; --muted:#9aa5b8; --line:#2b3549;
+    --accent:#8fb0e6; --accent-ink:#0f1420; --accent-soft:#22304a;
+    --ok:#5cc489; --ok-soft:#173326; --warn:#f0a35a; --warn-soft:#3a2a17; --bad:#f07a6e; --bad-soft:#3a1d1b;
+    --paper:#1a2131; --grid:#253048; --ink:#eef2f8; --ink-red:#ff8a80; --ink-green:#7ddca0; --flag:#f5a524;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1420; --surface:#171e2c; --surface-2:#1d2536; --text:#e6eaf2; --muted:#9aa5b8; --line:#2b3549;
+  --accent:#8fb0e6; --accent-ink:#0f1420; --accent-soft:#22304a;
+  --ok:#5cc489; --ok-soft:#173326; --warn:#f0a35a; --warn-soft:#3a2a17; --bad:#f07a6e; --bad-soft:#3a1d1b;
+  --paper:#1a2131; --grid:#253048; --ink:#eef2f8; --ink-red:#ff8a80; --ink-green:#7ddca0; --flag:#f5a524;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default;opacity:.5}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hidden{display:none!important}
+
+.app{height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr)}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{font-family:var(--f-mono);font-weight:600;letter-spacing:.02em;color:var(--accent);font-size:14px;white-space:nowrap}
+.modes{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.modes button{border:none;background:transparent;padding:7px 12px;font-weight:600;font-size:14px;color:var(--muted);min-height:36px}
+.modes button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.picker{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+select{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:44vw}
+.iconbtn{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:36px;min-height:36px}
+.marks{display:flex;align-items:center;gap:6px;margin-left:auto}
+.marks .lbl{font-size:12px;color:var(--muted)}
+.mark{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:5px 11px;font-weight:600;font-size:13px;min-height:34px}
+.mark[data-m="✓"]{color:var(--ok)} .mark[data-m="~"]{color:var(--warn)} .mark[data-m="✗"]{color:var(--bad)}
+.history{font-family:var(--f-mono);font-size:13px;min-width:4ch;color:var(--muted)}
+.timer{font-family:var(--f-mono);font-weight:600;font-size:18px;padding:4px 10px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.timer.low{color:var(--warn);border-color:var(--warn)} .timer.over{color:#fff;background:var(--bad);border-color:var(--bad)}
+.examlbl{font-weight:600}
+
+/* Today strip */
+.strip{display:flex;align-items:center;gap:10px;padding:6px 16px;background:var(--surface-2);border-bottom:1px solid var(--line);overflow-x:auto}
+.strip .sum{font-size:13px;color:var(--muted);white-space:nowrap}
+.strip .sum b{color:var(--text)}
+.qchip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 9px;font-family:var(--f-mono);font-size:13px;display:inline-flex;align-items:center;gap:5px;min-height:32px}
+.qchip .dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.qchip.r-x .dot{background:var(--bad)} .qchip.r-m .dot{background:var(--warn)} .qchip.r-ok .dot{background:var(--ok)} .qchip.r-new .dot{background:var(--accent)}
+.qchip.done{opacity:.5;text-decoration:line-through}
+.qchip[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.legend{font-size:12px;color:var(--muted);white-space:nowrap;display:flex;gap:8px;align-items:center}
+.legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:3px}
+
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,400px);min-height:0}
+@media (max-width:900px){ main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(220px,40%)} }
+
+.work{display:flex;flex-direction:column;min-height:0;min-width:0;border-right:1px solid var(--line)}
+.prob{background:var(--surface);border-bottom:1px solid var(--line);padding:10px 16px 12px;max-height:34%;overflow:auto}
+.prob-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px}
+.pid{font-family:var(--f-mono);font-weight:600;color:var(--accent);font-size:15px}
+.tag{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.tag.quiz{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tag.hw{color:var(--ok);border-color:var(--ok)}
+.tag.midterm{background:var(--bad);color:#fff;border-color:var(--bad)}
+.focusbtn[aria-pressed="true"]{background:var(--ok-soft);color:var(--ok);border-color:var(--ok);font-weight:600}
+.tag.lecture{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-soft)}
+.src{font-size:13px;color:var(--muted)}
+.stmt{font-size:16.5px;line-height:1.6;max-width:80ch;overflow-x:auto}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 12px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;min-height:36px;display:inline-flex;align-items:center;gap:6px}
+.tool[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.swatch{width:16px;height:16px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+.sep{width:1px;height:24px;background:var(--line);margin:0 2px}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.hcard{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:center;text-align:left;width:100%}
+.hcard:hover{border-color:var(--accent)}
+.hcard .when{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.hcard .what{font-weight:600}
+.hcard .sub{grid-column:2/4;font-size:13px;color:var(--muted)}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.badge.solved{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.badge.help{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.badge.missed{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.badge.open{color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:10px 12px}
+.stat .n{font-size:26px;font-weight:700;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.stat .l{font-size:12.5px;color:var(--muted)}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.filters .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.hlist{display:flex;flex-direction:column;gap:8px}
+.inkview{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;display:block}
+.attbtn{margin-left:4px}
+header.top{grid-row:1} .strip{grid-row:2} main,.screen{grid-row:3}
+.board{position:relative;flex:1;min-height:0;overflow:hidden;background:var(--bg);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.board canvas#ink{position:absolute;left:0;top:0;display:block;touch-action:none}
+.zoomlbl{font-family:var(--f-mono);font-size:13px;min-width:58px;justify-content:center}
+.peek{position:absolute;left:14px;bottom:84px;width:min(460px,calc(100% - 28px));max-height:46%;overflow:auto;z-index:4;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(15,25,45,.22);padding:10px 12px;font-size:14.5px}
+.peek.ok,.peek.done{border-left-color:var(--ok)} .peek.issue,.peek.unclear{border-left-color:var(--flag)}
+.peek-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.peek-head b{font-size:13px;color:var(--muted)}
+.peek-head .grow{flex:1}
+.peek p{margin:.3em 0}
+main.nocoach{grid-template-columns:minmax(0,1fr)}
+main.nocoach > aside.coach{display:none}
+@media (max-width:900px){ main.nocoach{grid-template-rows:minmax(0,1fr)} }
+.prob-meta .grow{flex:1}
+.prob.mini{padding-bottom:6px}
+.prob.mini .stmt{max-height:2.9em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
+.minibtn{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:3px 9px;font-size:12.5px;min-height:30px}
+canvas#ink{display:block;touch-action:pan-y}
+.fab{position:absolute;right:14px;bottom:14px;display:flex;gap:8px;z-index:3}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border:none;border-radius:12px;padding:14px 20px;font-weight:600;font-size:16px;box-shadow:0 6px 18px rgba(15,25,45,.22);min-height:52px}
+.btn-ghost{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-weight:600;box-shadow:0 4px 12px rgba(15,25,45,.12);min-height:52px}
+
+.coach{display:flex;flex-direction:column;min-height:0;background:var(--surface)}
+.pane{display:flex;flex-direction:column;min-height:0;flex:1}
+.coach-head{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.coach-head h2{margin:0;font-size:15px;font-weight:600}
+.pill{margin-left:auto;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.pill.issue{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pill.done{background:var(--ok);color:#fff;border-color:transparent}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;background:transparent;padding:4px 9px;font-size:12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.feed{flex:1;min-height:0;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.msg{flex-shrink:0;border-radius:10px;padding:9px 12px;max-width:100%;overflow-x:auto;font-size:14.5px}
+.msg p{margin:.3em 0} .msg ul,.msg ol{margin:.3em 0;padding-left:1.3em}
+.msg.me{align-self:flex-end;background:var(--accent-soft);max-width:88%}
+.msg.me img{display:block;max-width:180px;max-height:120px;border-radius:6px;margin-top:6px;border:1px solid var(--line);background:#fff}
+.msg.tutor{background:var(--surface-2);border:1px solid var(--line);border-left:4px solid var(--line)}
+.msg.tutor.ok{border-left-color:var(--ok)} .msg.tutor.issue,.msg.tutor.unclear{border-left-color:var(--flag)} .msg.tutor.done{border-left-color:var(--ok);background:var(--ok-soft)}
+.msg.sys{background:transparent;border:1px dashed var(--line);color:var(--muted);font-size:13.5px}
+.msg.sol{background:var(--ok-soft);border:1px solid var(--ok)}
+.msg.sol h4{margin:0 0 4px;font-size:13px;color:var(--ok);text-transform:uppercase;letter-spacing:.05em}
+.msg .trap{margin-top:6px;padding:6px 8px;border-radius:6px;background:var(--warn-soft)}
+.flagnote{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--flag);font-weight:600}
+.thinking{color:var(--muted);font-style:italic}
+.actions{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 0}
+.chip{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:7px 12px;font-size:13.5px;font-weight:500;min-height:36px}
+.chip.warn{color:var(--warn)}
+.ask{display:flex;gap:8px;padding:8px 14px 12px;align-items:flex-end}
+.ask textarea{flex:1;resize:none;min-height:40px;max-height:120px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface-2)}
+.ask .send{background:var(--accent);color:var(--accent-ink);border:none;border-radius:10px;padding:9px 14px;font-weight:600;min-height:40px}
+.askopts{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px 10px;font-size:12.5px;color:var(--muted)}
+details.log{border-top:1px solid var(--line);padding:6px 14px;font-size:13px}
+details.log summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.loglist{max-height:160px;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:4px 0}
+.logitem{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface-2);text-align:left}
+.logitem b{font-family:var(--f-mono);color:var(--accent);margin-right:6px}
+.note{font-size:12.5px;color:var(--muted)}
+
+/* Exam pane */
+.exlist{flex:1;min-height:0;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.exitem{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--surface-2);min-height:44px}
+.exitem[aria-current="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.exitem .n{font-family:var(--f-mono);font-weight:600;color:var(--accent)}
+.exitem .t{font-family:var(--f-mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.exfoot{padding:10px 14px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.btn-danger{background:var(--bad);color:#fff;border:none;border-radius:10px;padding:11px 14px;font-weight:600;min-height:44px}
+.btn-plain{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-weight:600;min-height:44px}
+
+/* Full-area screens: exam setup, results, recognition */
+.screen{overflow:auto;padding:20px 16px 40px;min-height:0}
+.panel{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.panel h1{font-size:22px;margin:0;text-wrap:balance}
+.panel h2{font-size:16px;margin:0}
+.panel p{margin:0;max-width:65ch}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.opt{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface);text-align:left;display:flex;flex-direction:column;gap:4px;min-height:80px}
+.opt[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+.opt b{font-size:15px} .opt span{font-size:13px;color:var(--muted)}
+.box{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px}
+table.res{width:100%;border-collapse:collapse;font-size:14px}
+table.res th,table.res td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+table.res td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.score-big{font-size:34px;font-weight:700;font-family:var(--f-mono)}
+.sc-ok{color:var(--ok)} .sc-mid{color:var(--warn)} .sc-bad{color:var(--bad)}
+.ded{margin:4px 0 0;padding-left:1.1em;font-size:13.5px}
+
+.rcard{border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:18px;display:flex;flex-direction:column;gap:14px}
+.rtop{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.rstmt{font-size:19px;line-height:1.6;overflow-x:auto}
+.rbar{height:8px;border-radius:999px;background:var(--surface-2);overflow:hidden;border:1px solid var(--line)}
+.rbar i{display:block;height:100%;background:var(--accent);width:100%}
+.ropts{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.ropt{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:12px;text-align:left;font-weight:500;min-height:52px;display:flex;gap:8px;align-items:center}
+.ropt kbd{font-family:var(--f-mono);font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.ropt.right{border-color:var(--ok);background:var(--ok-soft);color:var(--text)}
+.ropt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.rfeedback{border-radius:10px;padding:12px;background:var(--surface-2);border:1px solid var(--line)}
+.statrow{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px}
+.bar{height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden}
+.bar i{display:block;height:100%}
+/* Formula sheet drawer */
+.sheetbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.cards-on{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.cardlink{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:600;color:var(--accent);min-height:28px}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(100vw,max(440px,52vw));z-index:40;background:var(--surface);border-left:1px solid var(--line);box-shadow:-14px 0 34px rgba(15,25,45,.22);display:flex;flex-direction:column}
+.sheet.wide{width:100vw}
+@media (max-width:700px){ .sheet{width:100vw} }
+.sheet-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.sheet-head b{font-size:15px;margin-right:4px}
+.sheet-head .seg button{padding:6px 10px;font-size:13px;min-height:34px}
+.sheet-head select{max-width:230px}
+.grow{flex:1}
+.sheet-body{flex:1;min-height:0;overflow:auto;background:#7d8696;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.sheet-page{position:relative;width:200%;background:#fff}
+.sheet-page img{display:block;width:100%;height:auto;aspect-ratio:1700/2200;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.hl{position:absolute;border:3px solid var(--flag);border-radius:6px;background:rgba(245,165,36,.10);pointer-events:none;animation:hlpulse 1.4s ease-out 1}
+@keyframes hlpulse{0%{box-shadow:0 0 0 0 rgba(245,165,36,.55)}100%{box-shadow:0 0 0 18px rgba(245,165,36,0)}}
+.sheet-foot{padding:6px 12px;border-top:1px solid var(--line)}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+</style>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']], macros: { Lap: '\\mathcal{L}', Li: '\\mathcal{L}^{-1}' } },
+  svg: { fontCache: 'local' },
+  startup: { typeset: false, ready(){ MathJax.startup.defaultReady(); MathJax.startup.promise.then(() => { window.__mjReady = true; if (window.__mjFlush) window.__mjFlush(); }); } }
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js" async></script>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <span class="brand">DIF&nbsp;TUTOR</span>
+    <div class="modes" role="group" aria-label="Mode">
+      <button data-mode="practice" aria-pressed="true">Practice</button>
+      <button data-mode="today" aria-pressed="false">Today</button>
+      <button data-mode="exam" aria-pressed="false">Exam</button>
+      <button data-mode="recog" aria-pressed="false">Recognize</button>
+      <button data-mode="history" aria-pressed="false">History</button>
+    </div>
+    <button class="iconbtn sheetbtn" id="coachbtn" aria-pressed="true" title="Show or hide the tutor panel">Tutor panel</button>
+    <button class="iconbtn sheetbtn" id="sheetbtn" aria-pressed="false" aria-controls="sheet">Formula sheet</button>
+    <button class="iconbtn focusbtn" id="focusbtn" aria-pressed="true" title="Only your quizzes, graded HW, the midterm and the professor's lecture examples">Focus: quizzes · HW · midterm</button>
+    <div class="picker" id="pickerbox">
+      <button class="iconbtn" id="prev" aria-label="Previous problem">‹</button>
+      <label for="probsel" class="hidden">Problem</label>
+      <select id="probsel"></select>
+      <button class="iconbtn" id="next" aria-label="Next problem">›</button>
+    </div>
+    <div class="marks" id="marksbox">
+      <span class="lbl">Mark this try:</span>
+      <button class="mark" data-m="✓" title="Got it alone">✓</button>
+      <button class="mark" data-m="~" title="Needed help">~</button>
+      <button class="mark" data-m="✗" title="Missed it">✗</button>
+      <span class="history" id="markhist" aria-label="Past marks"></span>
+      <button class="minibtn attbtn" id="attbtn" title="Your saved attempts at this problem">Attempts</button>
+    </div>
+    <div class="marks hidden" id="exambox">
+      <span class="examlbl" id="examlbl"></span>
+      <span class="timer" id="timer">--:--</span>
+    </div>
+  </header>
+
+  <div class="strip hidden" id="todaystrip" aria-label="Today's queue"></div>
+
+  <main id="workmain">
+    <section class="work" aria-label="Your work">
+      <div class="prob">
+        <div class="prob-meta" id="probmeta">
+          <span class="pid" id="p-id"></span>
+          <span class="tag" id="p-tag"></span>
+          <span class="src" id="p-src"></span>
+          <span class="cards-on" id="p-cards"></span>
+          <span class="grow"></span>
+          <button class="minibtn" id="probmin" aria-expanded="true">Shrink ▴</button>
+        </div>
+        <div class="stmt" id="p-stmt"></div>
+      </div>
+      <div class="toolbar" role="toolbar" aria-label="Pen tools">
+        <button class="tool" data-pen="ink" aria-pressed="true"><span class="swatch" style="background:var(--ink)"></span>Pen</button>
+        <button class="tool" data-pen="red" aria-pressed="false" title="Red pen for corrections"><span class="swatch" style="background:var(--ink-red)"></span>Fix</button>
+        <button class="tool" data-pen="green" aria-pressed="false" title="Green pen"><span class="swatch" style="background:var(--ink-green)"></span></button>
+        <button class="tool" data-pen="erase" aria-pressed="false" title="Touch a stroke to remove it">Eraser</button>
+        <span class="sep"></span>
+        <button class="tool" id="undo">↶ Undo</button>
+        <button class="tool" id="redo" aria-label="Redo">↷</button>
+        <button class="tool" id="clear" title="Saves this attempt and gives you a blank page">New attempt</button>
+        <span class="sep"></span>
+        <button class="tool" id="zoomout" aria-label="Zoom out">−</button>
+        <button class="tool zoomlbl" id="zoomlbl" title="Back to 100%">100%</button>
+        <button class="tool" id="zoomin" aria-label="Zoom in">+</button>
+        <span class="sep"></span>
+        <label class="toggle"><input type="checkbox" id="finger"> Finger draws</label>
+      </div>
+      <div class="board" id="board">
+        <canvas id="ink" aria-label="Writing area. Pencil writes, one finger moves the page, two fingers zoom."></canvas>
+        <div class="peek hidden" id="peek" aria-live="polite">
+          <div class="peek-head"><b id="peekstat">Tutor</b><span class="grow"></span><button class="minibtn" id="peekopen">Open chat</button><button class="minibtn" id="peekclose" aria-label="Dismiss">✕</button></div>
+          <div id="peekbody"></div>
+        </div>
+        <div class="fab" id="fab">
+          <button class="btn-ghost" id="hintbtn">Hint</button>
+          <button class="btn-primary" id="checkbtn">Check my work</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="coach" aria-label="Tutor">
+      <div class="pane" id="coachpane">
+        <div class="coach-head">
+          <button class="minibtn" id="coachhide" title="Hide the tutor panel for more writing room">Hide ›</button>
+          <h2>Tutor</h2>
+          <div class="seg" role="group" aria-label="Check speed">
+            <button id="tier-careful" aria-pressed="true" title="Reads your work more carefully, takes longer">Careful</button>
+            <button id="tier-fast" aria-pressed="false" title="Faster answer, less careful reading">Fast</button>
+          </div>
+          <span class="pill" id="pill">Ready</span>
+        </div>
+        <div class="feed" id="feed" aria-live="polite"></div>
+        <div class="actions">
+          <button class="chip" id="explainbtn">Explain this step</button>
+          <button class="chip" id="gradebtn">I'm done, grade it</button>
+          <button class="chip warn" id="solbtn">Show solution</button>
+          <button class="chip hidden" id="stopbtn">Stop</button>
+        </div>
+        <form class="ask" id="askform">
+          <label for="askbox" class="hidden">Ask the tutor</label>
+          <textarea id="askbox" rows="1" placeholder="Ask anything about this problem…"></textarea>
+          <button class="send" type="submit">Send</button>
+        </form>
+        <div class="askopts">
+          <label><input type="checkbox" id="withwork" checked> Include my work</label>
+          <button class="chip" id="newchat" style="padding:4px 10px;min-height:28px">New chat</button>
+        </div>
+        <details class="log">
+          <summary>Mistake log (<span id="logcount">0</span>)</summary>
+          <div class="loglist" id="loglist"></div>
+        </details>
+      </div>
+
+      <div class="pane hidden" id="exampane">
+        <div class="coach-head"><button class="minibtn" id="examhide" title="Hide this panel">Hide ›</button><h2>Exam</h2><span class="pill" id="exampill">No checks or hints</span></div>
+        <div class="exlist" id="exlist"></div>
+        <div class="exfoot">
+          <p class="note">Work every problem like the real final: show every step. Your formula sheet is allowed (button up top). Tap a problem to switch. Grading happens when you submit.</p>
+          <button class="btn-danger" id="submitexam">Submit for grading</button>
+          <button class="btn-plain" id="quitexam">Quit without grading</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="screen hidden" id="examsetup" aria-label="Exam setup"></section>
+  <section class="screen hidden" id="recog" aria-label="Recognition drill"></section>
+  <section class="screen hidden" id="history" aria-label="Your attempts"></section>
+</div>
+
+<aside class="sheet hidden" id="sheet" aria-label="Formula sheet">
+  <div class="sheet-head">
+    <b>Formula sheet</b>
+    <div class="seg" role="group" aria-label="Side">
+      <button id="side1" aria-pressed="true">Front · Ch 2–3</button>
+      <button id="side2" aria-pressed="false">Back · Ch 5–6</button>
+    </div>
+    <label for="cardjump" class="hidden">Jump to card</label>
+    <select id="cardjump"></select>
+    <span class="grow"></span>
+    <button class="iconbtn" id="zout" aria-label="Zoom out">−</button>
+    <button class="iconbtn" id="zin" aria-label="Zoom in">+</button>
+    <button class="iconbtn" id="sheetwide" aria-pressed="false" title="Full width">Wide</button>
+    <button class="iconbtn" id="sheetclose" aria-label="Close formula sheet">✕</button>
+  </div>
+  <div class="sheet-body" id="sheetbody">
+    <div class="sheet-page" id="sheetpage"><img id="sheetimg" alt="Formula sheet" draggable="false"><div id="sheethl"></div></div>
+  </div>
+  <div class="sheet-foot note">The same 2 pages you print for Dec 5. Pinch or use + and − to zoom.</div>
+</aside>
+<script type="application/json" id="bank">__BANK__</script>
+<script>window.SHEETS = __SHEETS__;</script>
+<script>
+(async () => {
+"use strict";
+async function loadBank(){
+  try { const el = document.getElementById('bank'); if (el && el.textContent.trim().startsWith('{')) return JSON.parse(el.textContent); } catch {}
+  try { const r = await fetch('bank.json'); if (!r.ok) throw new Error(r.status); return await r.json(); }
+  catch (e) { document.body.innerHTML = '<p style="padding:24px;font-family:sans-serif">The problem bank did not load. Reload the page.</p>'; throw e; }
+}
+const BANK = await loadBank();
+const P = BANK.problems, BY = Object.fromEntries(P.map(p => [p.id, p])), METH = BANK.methods;
+const CARDS = __CARDS__;
+const M2C = { classify:['18'], dirfield:['18'], separable:['19'], linear1:['20'], eu:['21'], exact:['22'], exactmu:['22'], model:['30'],
+  const2:['23'], euler:['6'], wronskian:['24'], reduction:['25'], uc:['26'], vop:['27'],
+  series_basics:['1'], taylor:['1','2'], shift:['3'], series_sol:['4'], radius:['5'], taylor_ode:['5'], singular:['7'],
+  lap_def:['8','10'], lap_inv:['12','12b'], lap_ivp:['11','12'], step:['15','16'], step_ivp:['17'] };
+const FOCUS_TAGS = new Set(['quiz', 'hw', 'midterm', 'lecture']);
+let focus = (() => { try { const v = localStorage.getItem('dif:focus'); return v === null ? true : JSON.parse(v); } catch { return true; } })();
+const inFocus = p => !focus || FOCUS_TAGS.has(p.tag);
+const ALL_ORDER = BANK.sets.flatMap(s => P.filter(p => p.set === s.k).map(p => p.id));
+let ORDER = ALL_ORDER.filter(id => inFocus(BY[id]));
+const $ = id => document.getElementById(id);
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k){ try { localStorage.removeItem(k); } catch {} }
+};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const DAY = 864e5;
+const fmt = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+const dayKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+/* ---------------- Math + markdown ---------------- */
+const mjQueue = new Set();
+window.__mjFlush = () => { const els = [...mjQueue].filter(e => e.isConnected); mjQueue.clear(); if (els.length) MathJax.typesetPromise(els).catch(() => {}); };
+function typeset(el){ setTimeout(() => { if (!el.isConnected) return; if (window.__mjReady) MathJax.typesetPromise([el]).catch(() => {}); else mjQueue.add(el); }, 0); }
+if (window.marked){ marked.use({ mangle:false, headerIds:false, renderer:{ html(t){ return esc(t); } } }); }
+function md(text, inline){
+  const math = [];
+  const t = String(text).replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, m => { math.push(m); return `@@M${math.length - 1}@@`; });
+  const html = window.marked ? (inline ? marked.parseInline(t) : marked.parse(t)) : esc(t).replace(/\n/g, '<br>');
+  return html.replace(/@@M(\d+)@@/g, (_, i) => esc(math[+i]));
+}
+function renderInto(el, text, inline){ el.innerHTML = md(text, inline); typeset(el); }
+
+/* ---------------- Progress: marks log, mistakes, exams, recognition stats ---------------- */
+let progress = LS.get('dif:progress', null) || {};
+function normProgress(p){
+  p.marks = p.marks || {}; p.log = p.log || {}; p.mistakes = p.mistakes || []; p.exams = p.exams || []; p.recog = p.recog || {}; p.recogMiss = p.recogMiss || {};
+  for (const [id, s] of Object.entries(p.marks)) if (!p.log[id] && s) p.log[id] = [...s].map(m => [m, Date.now() - DAY]);
+  return p;
+}
+progress = normProgress(progress);
+let db = null, writing = Promise.resolve(), progT = 0;
+function persistProgress(){
+  LS.set('dif:progress', progress);
+  if (!db) return;
+  clearTimeout(progT);
+  progT = setTimeout(() => { const body = JSON.parse(JSON.stringify(progress)); body.updated = new Date().toISOString();
+    writing = writing.then(() => db.doc('progress/main').set(body)).catch(() => {}); }, 1500);
+}
+function srInfo(id){
+  const L = progress.log[id] || []; if (!L.length) return { seen:false };
+  const last = L[L.length - 1]; let streak = 0;
+  for (let i = L.length - 1; i >= 0 && L[i][0] === '✓'; i--) streak++;
+  const gap = last[0] === '✗' ? 0 : last[0] === '~' ? DAY : streak >= 2 ? 6 * DAY : 2 * DAY;
+  return { seen:true, last:last[0], at:last[1], streak, due:last[1] + gap, drilled: streak >= 2, today: dayKey(last[1]) === dayKey() };
+}
+function addMark(id, m){
+  (progress.log[id] = progress.log[id] || []).push([m, Date.now()]);
+  if (progress.log[id].length > 12) progress.log[id] = progress.log[id].slice(-12);
+  progress.marks[id] = ((progress.marks[id] || '') + m).slice(-8);
+  persistProgress();
+}
+const markSummary = id => (progress.marks[id] || '').slice(-3);
+
+/* ---------------- Mode switching ---------------- */
+let mode = 'practice';
+function setMode(m){
+  if (m === mode && m !== 'exam' && m !== 'history') return;
+  if (busy) busy.abort();
+  flushAtt();
+  saveInk();
+  mode = m; LS.set('dif:mode', m);
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m ? 'true' : 'false'));
+  const ex = activeExam();
+  const showWork = m === 'practice' || m === 'today' || (m === 'exam' && ex && !ex.results);
+  $('workmain').classList.toggle('hidden', !showWork);
+  $('examsetup').classList.toggle('hidden', !(m === 'exam' && !(ex && !ex.results)));
+  $('recog').classList.toggle('hidden', m !== 'recog');
+  $('todaystrip').classList.toggle('hidden', m !== 'today');
+  const exRun = m === 'exam' && ex && !ex.results;
+  $('pickerbox').classList.toggle('hidden', !(m === 'practice' || m === 'today'));
+  $('marksbox').classList.toggle('hidden', !(m === 'practice' || m === 'today'));
+  $('exambox').classList.toggle('hidden', !exRun);
+  $('coachpane').classList.toggle('hidden', exRun);
+  $('exampane').classList.toggle('hidden', !exRun);
+  $('fab').classList.toggle('hidden', exRun);
+  $('probmeta').classList.toggle('hidden', exRun);
+  if (m === 'practice') openProblem(pid);
+  else if (m === 'today'){ buildToday(false); openProblem(nextInQueue() || pid); }
+  else if (m === 'exam'){ if (exRun) openExamProblem(ex.cur); else if (ex && ex.results) showExamResults(ex); else renderExamSetup(); }
+  else if (m === 'recog') renderRecogStart();
+  else if (m === 'history') renderHistory();
+  $('history').classList.toggle('hidden', m !== 'history');
+  if (exRun) startExamClock(); else stopExamClock();
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+/* ---------------- Problem picker ---------------- */
+let pid = LS.get('dif:last', 'X3'); if (!BY[pid]) pid = 'X3';
+const sel = $('probsel');
+function optLabel(p){ const m = markSummary(p.id); return `${p.id} · ${p.src}${p.final ? '' : ' (not on final)'}${m ? '  ' + m : ''}`; }
+function buildPicker(){
+  sel.innerHTML = '';
+  const qnum = p => { const m = /Quiz (\d+) Q(\d+)/.exec(p.src); return m ? +m[1] * 100 + +m[2] : 9999; };
+  const quizzes = P.filter(p => /^Review Quiz \d/.test(p.src)).sort((a, b) => qnum(a) - qnum(b));
+  if (quizzes.length){
+    const g = document.createElement('optgroup'); g.label = `★ All review quizzes 1–8 (${quizzes.length})`;
+    for (const p of quizzes){ const o = document.createElement('option'); o.value = p.id; o.textContent = optLabel(p); g.appendChild(o); }
+    sel.appendChild(g);
+  }
+  for (const s of BANK.sets){
+    const g = document.createElement('optgroup'); g.label = `${s.k === 'Q' ? 'Quizzes' : 'Set ' + s.k} · ${s.name}`;
+    const list = P.filter(p => p.set === s.k && (inFocus(p) || p.id === pid));
+    if (!list.length) continue;
+    for (const p of list){ const o = document.createElement('option'); o.value = p.id; o.textContent = optLabel(p); g.appendChild(o); }
+    sel.appendChild(g);
+  }
+  sel.value = pid;
+}
+sel.addEventListener('change', () => openProblem(sel.value));
+$('prev').onclick = () => {
+  if (mode === 'today'){ const q = today.ids, i = q.indexOf(pid); if (i > 0) openProblem(q[i - 1]); return; }
+  const i = ORDER.indexOf(pid); if (i > 0) openProblem(ORDER[i - 1]);
+};
+$('next').onclick = () => {
+  if (mode === 'today'){ const q = today.ids, i = q.indexOf(pid); if (i < q.length - 1) openProblem(q[i + 1]); return; }
+  const i = ORDER.indexOf(pid); if (i < ORDER.length - 1) openProblem(ORDER[i + 1]);
+};
+const TAGNAME = { quiz:'Quiz', hw:'★ Graded HW', midterm:'Midterm', extra:'Extra', lecture:'Lecture example', practice:'Practice' };
+function showProblem(p, hideMeta){
+  $('p-id').textContent = p.id;
+  const tg = $('p-tag'); tg.textContent = TAGNAME[p.tag] || p.tag; tg.className = 'tag ' + p.tag;
+  $('p-src').textContent = p.src + (p.final ? '' : ' · not on the final');
+  renderInto($('p-stmt'), p.stmt, false);
+  $('markhist').textContent = progress.marks[p.id] || '';
+  const pc = $('p-cards'); pc.innerHTML = '';
+  const cs = M2C[p.method] || [];
+  if (cs.length){
+    const l = document.createElement('span'); l.className = 'src'; l.textContent = 'On your sheet:'; pc.appendChild(l);
+    for (const c of cs){ const b = document.createElement('button'); b.className = 'cardlink'; b.textContent = 'card ' + c; b.title = CARDS[c].title; b.onclick = () => openSheet(c); pc.appendChild(b); }
+  }
+}
+document.querySelectorAll('.mark').forEach(b => b.addEventListener('click', () => {
+  if (att && att.autoMark && att.status !== 'open' && att.pid === pid) replaceLastMark(pid, b.dataset.m); else addMark(pid, b.dataset.m);
+  if (att && att.pid === pid){ att.autoMark = false; finishAtt(MARK2STATUS[b.dataset.m]); addMsg('sys', md(`Saved to History as **${STATUS_TXT[att.status]}**.`, false)); }
+  $('markhist').textContent = progress.marks[pid];
+  const o = [...sel.options].find(o => o.value === pid); if (o) o.textContent = optLabel(BY[pid]);
+  if (mode === 'today'){ renderToday(); const n = nextInQueue(); if (n && n !== pid) setTimeout(() => openProblem(n), 350); else if (!n) addMsg('sys', md("**Today's queue is done.** Nice work. Tap **Rebuild** in the strip to pull anything else that's due, or switch to Recognize for a quick round.", false)); }
+}));
+
+/* ---------------- Ink canvas: endless grid paper; Pencil writes, one finger pans, two fingers pinch-zoom ---------------- */
+const U = 1000;
+const cv = $('ink'), board = $('board'), ctx = cv.getContext('2d');
+let ink = { strokes:[], seq:0, checked:0, pageH:1500, flag:null };
+let inkKey = 'dif:ink:' + pid, undoStack = [], redoStack = [];
+let pen = 'ink', drawing = null, erasing = false;
+let view = { x:-16, y:-16 }, zoom = LS.get('dif:zoom', 1), s = 1, dpr = 1, vw = 0, vh = 0, maxX = U;
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const colors = () => ({ ink:css('--ink'), red:css('--ink-red'), green:css('--ink-green'), grid:css('--grid'), paper:css('--paper'), flag:css('--flag'), desk:css('--bg'), muted:css('--muted') });
+const baseScale = () => vw >= 700 ? 0.8 : Math.max(0.35, vw / 1000);
+const clampZ = z => Math.max(0.4, Math.min(3, z));
+function resize(){
+  const r = board.getBoundingClientRect(); if (!r.width || !r.height) return;
+  vw = r.width; vh = r.height; dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.style.width = vw + 'px'; cv.style.height = vh + 'px';
+  cv.width = Math.round(vw * dpr); cv.height = Math.round(vh * dpr);
+  s = baseScale() * zoom; clampView(); redraw(); zoomLabel();
+}
+function computeMaxX(){ maxX = U; for (const st of ink.strokes) for (const q of st.pts) if (q[0] > maxX) maxX = q[0]; }
+function clampView(){
+  const visW = vw / s, visH = vh / s;
+  const hiX = Math.max(-40, Math.max(U, maxX + 300) - visW + 40);
+  view.x = Math.max(-40, Math.min(hiX, view.x));
+  const hiY = Math.max(-40, ink.pageH - visH + 120);
+  view.y = Math.max(-40, Math.min(hiY, view.y));
+}
+const setT = () => ctx.setTransform(dpr * s, 0, 0, dpr * s, -view.x * dpr * s, -view.y * dpr * s);
+function strokePath(g, st, color, k = 1){
+  const pts = st.pts; if (!pts.length) return;
+  const avgP = pts.reduce((a, q) => a + q[2], 0) / pts.length;
+  g.strokeStyle = color; g.fillStyle = color; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.lineWidth = st.w * (0.55 + 0.9 * avgP) * k;
+  if (pts.length === 1){ g.beginPath(); g.arc(pts[0][0], pts[0][1], g.lineWidth / 2, 0, Math.PI * 2); g.fill(); return; }
+  g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length - 1; i++){ const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; g.quadraticCurveTo(pts[i][0], pts[i][1], mx, my); }
+  const L = pts[pts.length - 1]; g.lineTo(L[0], L[1]); g.stroke();
+}
+function redraw(){
+  if (!vw) return;
+  const c = colors();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = c.desk; ctx.fillRect(0, 0, vw, vh);
+  setT();
+  const x0 = Math.max(0, view.x), y0 = Math.max(0, view.y), x1 = view.x + vw / s, y1 = view.y + vh / s;
+  ctx.fillStyle = c.paper; ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  ctx.strokeStyle = c.grid; ctx.lineWidth = 1 / s; ctx.beginPath();
+  for (let y = Math.ceil(y0 / 40) * 40; y < y1; y += 40){ ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
+  for (let x = Math.ceil(x0 / 40) * 40; x < x1; x += 40){ ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
+  ctx.stroke();
+  for (const st of ink.strokes) strokePath(ctx, st, c[st.c] || c.ink);
+  if (drawing && drawing.pts) strokePath(ctx, drawing, c[drawing.c] || c.ink);
+  const f = ink.flag;
+  if (f){
+    const pad = 10, x = f.x0 - pad, y = f.y0 - pad, w = f.x1 - f.x0 + 2 * pad, h = f.y1 - f.y0 + 2 * pad;
+    ctx.save(); ctx.strokeStyle = c.flag; ctx.lineWidth = 3; ctx.setLineDash([12, 8]);
+    ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, 14); else ctx.rect(x, y, w, h); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = c.flag; ctx.font = '600 22px "IBM Plex Sans", sans-serif';
+    ctx.fillText('check this line', x + 6, Math.max(22, y - 8)); ctx.restore();
+  }
+  // position bar on the right edge
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const total = Math.max(ink.pageH, view.y + vh / s) + 40, th = Math.max(36, vh * (vh / s) / total), ty = (view.y + 40) / total * vh;
+  ctx.globalAlpha = 0.35; ctx.fillStyle = c.muted; ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(vw - 7, Math.min(vh - th, Math.max(0, ty)), 4, th, 2); else ctx.rect(vw - 7, Math.min(vh - th, Math.max(0, ty)), 4, th);
+  ctx.fill(); ctx.globalAlpha = 1;
+  setT();
+}
+function zoomLabel(){ $('zoomlbl').textContent = Math.round(zoom * 100) + '%'; }
+function zoomAt(z, cx, cy){
+  const r = cv.getBoundingClientRect();
+  if (cx === undefined){ cx = r.left + vw / 2; cy = r.top + vh / 2; }
+  const lx = (cx - r.left) / s + view.x, ly = (cy - r.top) / s + view.y;
+  zoom = clampZ(z); s = baseScale() * zoom;
+  view.x = lx - (cx - r.left) / s; view.y = ly - (cy - r.top) / s;
+  clampView(); redraw(); zoomLabel(); LS.set('dif:zoom', zoom);
+}
+$('zoomin').onclick = () => zoomAt(zoom * 1.25);
+$('zoomout').onclick = () => zoomAt(zoom / 1.25);
+$('zoomlbl').onclick = () => zoomAt(1);
+const toUnits = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / s + view.x, (e.clientY - r.top) / s + view.y, e.pressure && e.pointerType === 'pen' ? e.pressure : 0.5]; };
+const touches = new Map(); let gesture = null, lastPenT = 0;
+function startGesture(){
+  const pts = [...touches.values()];
+  if (!pts.length){ gesture = null; return; }
+  if (pts.length === 1) gesture = { kind:'pan', sx: pts[0][0], sy: pts[0][1], vx: view.x, vy: view.y };
+  else { const [a, b] = pts; gesture = { kind:'pinch', d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2, vx: view.x, vy: view.y, z: zoom }; }
+}
+function applyGesture(){
+  const g = gesture; if (!g) return;
+  const pts = [...touches.values()];
+  if (g.kind === 'pan' && pts.length === 1){
+    view.x = g.vx - (pts[0][0] - g.sx) / s; view.y = g.vy - (pts[0][1] - g.sy) / s;
+  } else if (g.kind === 'pinch' && pts.length >= 2){
+    const [a, b] = pts, r = cv.getBoundingClientRect();
+    const s0 = baseScale() * g.z, lx = (g.mx - r.left) / s0 + g.vx, ly = (g.my - r.top) / s0 + g.vy;
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    zoom = clampZ(g.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / g.d); s = baseScale() * zoom;
+    view.x = lx - (mx - r.left) / s; view.y = ly - (my - r.top) / s; zoomLabel();
+  }
+  clampView(); redraw();
+}
+function beginDraw(e){
+  const pt = toUnits(e);
+  if (pen === 'erase'){ erasing = { removed:[], pid: e.pointerId }; eraseAt(pt); return; }
+  drawing = { id: ++ink.seq, c: pen, w: 2.6, t: Date.now(), pts:[pt], pid: e.pointerId, touch: e.pointerType === 'touch' };
+}
+cv.addEventListener('pointerdown', e => {
+  const fingerDraw = $('finger').checked;
+  if (e.pointerType === 'touch'){
+    e.preventDefault();
+    if (Date.now() - lastPenT < 500 || (drawing && !drawing.touch) || (erasing && !erasing.touch)) return;   // palm resting while writing
+    if (fingerDraw && !touches.size && !drawing && !erasing){ cv.setPointerCapture(e.pointerId); beginDraw(e); if (erasing) erasing.touch = true; return; }
+    if (drawing && drawing.touch){ touches.set(drawing.pid, drawing.lastClient || [e.clientX, e.clientY]); ink.seq--; drawing = null; redraw(); }   // second finger: turn into a pinch
+    if (erasing && erasing.touch){ endStroke(); }
+    cv.setPointerCapture(e.pointerId); touches.set(e.pointerId, [e.clientX, e.clientY]); startGesture(); return;
+  }
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  if (e.pointerType === 'pen'){ lastPenT = Date.now(); touches.clear(); gesture = null; }
+  beginDraw(e);
+});
+cv.addEventListener('pointermove', e => {
+  if (touches.has(e.pointerId)){ e.preventDefault(); touches.set(e.pointerId, [e.clientX, e.clientY]); applyGesture(); return; }
+  if (e.pointerType === 'pen') lastPenT = Date.now();
+  if (drawing && e.pointerId === drawing.pid){
+    e.preventDefault(); drawing.lastClient = [e.clientX, e.clientY];
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    const c = colors(); setT();
+    for (const ev of (evs.length ? evs : [e])){
+      const pt = toUnits(ev), last = drawing.pts[drawing.pts.length - 1];
+      if (Math.hypot(pt[0] - last[0], pt[1] - last[1]) < 0.6 / zoom) continue;
+      drawing.pts.push(pt);
+      ctx.strokeStyle = c[drawing.c] || c.ink; ctx.lineCap = 'round'; ctx.lineWidth = drawing.w * (0.55 + 0.9 * pt[2]);
+      ctx.beginPath(); ctx.moveTo(last[0], last[1]); ctx.lineTo(pt[0], pt[1]); ctx.stroke();
+    }
+    return;
+  }
+  if (erasing && e.pointerId === erasing.pid){ e.preventDefault(); const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; for (const ev of (evs.length ? evs : [e])) eraseAt(toUnits(ev)); }
+});
+function endPointer(e){
+  if (touches.has(e.pointerId)){
+    touches.delete(e.pointerId); startGesture();
+    if (!touches.size) LS.set('dif:zoom', zoom);
+    return;
+  }
+  if (e.pointerType === 'pen') lastPenT = Date.now();
+  if ((drawing && e.pointerId === drawing.pid) || (erasing && e.pointerId === erasing.pid)) endStroke();
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey){ zoomAt(zoom * Math.exp(-e.deltaY / 200), e.clientX, e.clientY); return; }
+  view.x += (e.shiftKey ? e.deltaY : e.deltaX) / s; view.y += (e.shiftKey ? 0 : e.deltaY) / s; clampView(); redraw();
+}, { passive:false });
+['gesturestart', 'gesturechange'].forEach(ev => cv.addEventListener(ev, e => e.preventDefault()));
+function endStroke(){
+  if (erasing){ if (erasing.removed.length){ undoStack.push({ t:'erase', items: erasing.removed }); redoStack = []; computeMaxX(); saveInkSoon(); } erasing = false; return; }
+  if (!drawing) return;
+  const st = drawing; drawing = null; delete st.pid; delete st.touch; delete st.lastClient;
+  ink.strokes.push(st); undoStack.push({ t:'add', s: st }); redoStack = [];
+  let my = 0; for (const q of st.pts){ if (q[1] > my) my = q[1]; if (q[0] > maxX) maxX = q[0]; }
+  if (my > ink.pageH - 260) ink.pageH += 700;
+  redraw(); saveInkSoon();
+  if (mode === 'exam' && ink.strokes.length === 1) renderExamList();
+  if (mode === 'practice' || mode === 'today'){ ensureAtt(); att.strokes = ink.strokes.length; attDirty(); }
+}
+function eraseAt(pt){
+  let hit = false; const r = 14 / Math.min(1, zoom);
+  for (let i = ink.strokes.length - 1; i >= 0; i--){
+    const st = ink.strokes[i];
+    if (st.pts.some(q => Math.hypot(q[0] - pt[0], q[1] - pt[1]) < r)){ erasing.removed.push({ s: st, i }); ink.strokes.splice(i, 1); hit = true; }
+  }
+  if (hit) redraw();
+}
+function showOnPage(x0, y0){
+  const visW = vw / s, visH = vh / s;
+  if (y0 < view.y + 20 || y0 > view.y + visH - 160) view.y = y0 - 80 / s;
+  if (x0 < view.x || x0 > view.x + visW - 60) view.x = x0 - 40;
+  clampView(); redraw();
+}
+$('finger').checked = LS.get('dif:finger', false);
+$('finger').addEventListener('change', () => LS.set('dif:finger', $('finger').checked));
+document.querySelectorAll('[data-pen]').forEach(b => b.addEventListener('click', () => { pen = b.dataset.pen; document.querySelectorAll('[data-pen]').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); }));
+$('undo').onclick = () => {
+  const a = undoStack.pop(); if (!a) return;
+  if (a.t === 'add') ink.strokes = ink.strokes.filter(x => x !== a.s);
+  else if (a.t === 'erase') a.items.slice().reverse().forEach(({ s: st, i }) => ink.strokes.splice(Math.min(i, ink.strokes.length), 0, st));
+  else if (a.t === 'clear') ink.strokes = a.strokes.slice();
+  redoStack.push(a); computeMaxX(); redraw(); saveInkSoon();
+};
+$('redo').onclick = () => {
+  const a = redoStack.pop(); if (!a) return;
+  if (a.t === 'add') ink.strokes.push(a.s);
+  else if (a.t === 'erase'){ const set = new Set(a.items.map(x => x.s)); ink.strokes = ink.strokes.filter(x => !set.has(x)); }
+  else if (a.t === 'clear') ink.strokes = [];
+  undoStack.push(a); computeMaxX(); redraw(); saveInkSoon();
+};
+let clearArmed = 0;
+$('clear').onclick = () => {
+  if (!ink.strokes.length) return;
+  const lbl = mode === 'exam' ? 'Clear' : 'New attempt';
+  if (Date.now() - clearArmed > 2500){ clearArmed = Date.now(); $('clear').textContent = mode === 'exam' ? 'Tap again to clear' : 'Tap again: save & start over'; setTimeout(() => $('clear').textContent = lbl, 2500); return; }
+  if (mode !== 'exam') closeAtt();
+  undoStack.push({ t:'clear', strokes: ink.strokes.slice() }); redoStack = [];
+  ink.strokes = []; ink.checked = ink.seq; ink.flag = null; $('clear').textContent = lbl;
+  if (mode !== 'exam') addMsg('sys', 'Last attempt saved to History. Blank page: go again from the top.'); computeMaxX(); view = { x:-16, y:-16 }; clampView(); redraw(); saveInkSoon();
+};
+let saveT = 0;
+function saveInkSoon(){ clearTimeout(saveT); saveT = setTimeout(saveInk, 600); }
+let inkLoaded = false;
+function saveInk(){ clearTimeout(saveT); if (inkLoaded) LS.set(inkKey, ink); }
+function loadInk(key){
+  inkKey = key; inkLoaded = true; ink = LS.get(key, null) || { strokes:[], seq:0, checked:0, pageH:1500, flag:null };
+  drawing = null; erasing = false; touches.clear(); gesture = null;
+  undoStack = []; redoStack = []; computeMaxX(); view = { x:-16, y:-16 }; resize();
+  att = key.startsWith('dif:ink:') ? LS.get('dif:att:' + key, null) : null;
+  if (att && att.pid !== key.slice(8)) att = null;
+  $('clear').textContent = key.startsWith('dif:ink:') ? 'New attempt' : 'Clear';
+}
+
+/* Snapshot: tight crop, white paper, dark ink; strokes since the last check in blue (practice). */
+function bbox(list){
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of list) for (const q of s.pts){ if (q[0] < x0) x0 = q[0]; if (q[1] < y0) y0 = q[1]; if (q[0] > x1) x1 = q[0]; if (q[1] > y1) y1 = q[1]; }
+  return { x0, y0, x1, y1 };
+}
+function snapshot(inkObj, highlightNew){
+  if (!inkObj.strokes.length) return Promise.resolve(null);
+  const all = bbox(inkObj.strokes), fresh = highlightNew ? inkObj.strokes.filter(s => s.id > inkObj.checked) : [];
+  let x0 = Math.max(0, all.x0 - 30), x1 = all.x1 + 30, y0 = Math.max(0, all.y0 - 30), y1 = all.y1 + 30;
+  const w = Math.max(x1 - x0, 300);
+  if (highlightNew && (y1 - y0) > 2.2 * w && fresh.length) y0 = Math.max(y0, bbox(fresh).y0 - 450);
+  const h = y1 - y0, k = Math.min(2.4, Math.sqrt(1.1e6 / (w * h)));
+  const o = document.createElement('canvas'); o.width = Math.round(w * k); o.height = Math.round(h * k);
+  const g = o.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, o.width, o.height);
+  g.setTransform(k, 0, 0, k, -x0 * k, -y0 * k);
+  const old = { ink:'#1b2230', red:'#b91c1c', green:'#15803d' };
+  for (const s of inkObj.strokes){ if (s.pts.some(q => q[1] >= y0 - 5)) strokePath(g, s, highlightNew && s.id > inkObj.checked ? '#1d4ed8' : (old[s.c] || old.ink), 1.25); }
+  return new Promise(res => o.toBlob(b => res(b ? { blob:b, crop:{ x0, y0, w, h } } : null), 'image/png'));
+}
+
+/* ---------------- Tutor (Claude via sample) ---------------- */
+let sample = null, canImages = false, busy = null, turns = [];
+let tier = LS.get('dif:tier', 'default');
+const feed = $('feed');
+function setPill(text, cls){ const p = $('pill'); p.textContent = text; p.className = 'pill ' + (cls || ''); }
+function addMsg(cls, html, isMd){
+  const d = document.createElement('div'); d.className = 'msg ' + cls; feed.appendChild(d);
+  if (isMd) renderInto(d, html, false); else d.innerHTML = html;
+  feed.scrollTop = feed.scrollHeight; return d;
+}
+function refBlock(p){
+  const steps = p.steps && p.steps.length ? p.steps.map((s, i) => `${i + 1}) ${s}`).join('\n') : '(No step list on file: judge against the key idea and the final answer.)';
+  return `Key idea: ${p.key}\nSteps:\n${steps}\nFinal answer: ${p.ans}\n${p.trap ? 'Common point-loser: ' + p.trap : ''}`;
+}
+function rules(){
+  const p = BY[pid];
+  return `You are a patient, sharp differential-equations tutor for Adan, a mechanical-engineering student in Math 555 (Boyce & DiPrima). He writes by hand on an iPad and you see a picture of his handwriting. His final exam is Dec 5; the professor grades every step and gives no credit for an answer without work. On the final, undetermined-coefficients questions ask only for the FORM of the particular solution.
+
+PROBLEM ${p.id} (${p.src}):
+${p.stmt}
+
+REFERENCE SOLUTION. PRIVATE: use it to judge his work. Do not reveal the final answer, or any step he has not reached, unless he explicitly asks for the answer or the solution, or asks you to grade a finished solution.
+${refBlock(p)}
+
+HIS FORMULA SHEET
+He has his own 2-page formula sheet open beside his work: the one he will bring to the final, made of numbered cards. For this problem: ${sheetCards(p)}. When a hint is about a formula or a standard step, send him to the card ("look at card 20, the mu line") instead of writing the formula out, so he practices using the sheet. When grading, name the card that would have prevented a deduction.
+
+HOW TO TUTOR
+- Read the handwriting carefully, top to bottom. Dark ink was already reviewed; BLUE ink is new since his last check. Focus on the blue lines, but still flag an earlier error you missed. Only the newest picture is attached.
+- Find the FIRST line that is wrong, unjustified, or missing a step the professor would require. Quote that line briefly so he can find it.
+- Do not fix it for him. Say what is wrong in one sentence, then give the smallest useful hint or a guiding question.
+- A different valid method is fine. Equivalent forms of the answer are fine.
+- If everything so far is right, say so in one short line. Sometimes ask him WHY his last step works, in one line.
+- If you can't read something, name the line and ask him to rewrite it.
+- Be direct and brief: under 70 words, unless he asks for an explanation or a grade. Plain language, no flattery.
+- Write math in LaTeX between $...$.
+
+REPLY FORMAT
+Line 1 is exactly one of: STATUS: ok | STATUS: issue | STATUS: done | STATUS: unclear | STATUS: info
+(done = final answer correct and the work complete; unclear = can't read it or not enough work yet; info = answering a question or explaining.)
+If STATUS is issue or unclear, line 2 is: BOX: left top right bottom
+— four numbers, percentages (0-100) of the attached picture's width and height, for a box tightly around the line you mean. Otherwise leave the BOX line out.
+Then a blank line, then your message in Markdown.`;
+}
+const ACTIONS = {
+  check:   () => 'Here is my work so far. Check it.',
+  hint:    () => "I'm stuck on what to do next. Look at my work and give me the smallest hint for the next step only. Don't give the answer.",
+  explain: () => "Explain the idea behind the step I'm on, like a teacher at the board: why it works and what to watch for. Use my work to see where I am, keep it under 180 words, and don't solve the rest for me.",
+  grade:   () => "I'm done. Grade my full solution the way the professor would, out of 10. List each deduction (missing step, sign error, no interval, wrong form, ...) with the corrected line. Now you may compare against the final answer.",
+  ask:     q  => q
+};
+const LABEL = { check:'Check my work', hint:'Hint please', explain:'Explain this step', grade:"I'm done, grade it" };
+function parseReply(t){
+  const m = /^\s*STATUS:\s*(ok|issue|done|unclear|info)\b[^\n]*\n?/i.exec(t);
+  let st = 'info', body = t;
+  if (m){ st = m[1].toLowerCase(); body = t.slice(m[0].length); }
+  let box = null;
+  const b = /^\s*BOX:\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)[^\n]*\n?/im.exec(body);
+  if (b){ box = b.slice(1, 5).map(Number); body = body.replace(b[0], ''); }
+  return { st, body: body.trim(), box };
+}
+const PILL = { ok:['On track','ok'], issue:['Fix a line','issue'], done:['Solved','done'], unclear:["Can't read it",'issue'], info:['Answered',''] };
+const ERRCOPY = {
+  rate_limited: 'Too many checks too fast, or you hit your Claude usage limit. Wait a minute, then tap again.',
+  session_expired: 'Your Claude session expired. Sign in again, then tap again.',
+  image_rejected: "The picture of your work couldn't be sent. Tap again.",
+  refused: 'No answer came back for that. Try asking it a different way.',
+  empty_completion: 'No answer came back. Tap again.',
+  prompt_too_large: 'This chat got too long. Tap "New chat" and try again.',
+  invalid_json: "The grade came back garbled. Tap again.",
+};
+const FATAL = ['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'];
+function disableTutor(why){
+  ['checkbtn','hintbtn','explainbtn','gradebtn'].forEach(id => $(id).disabled = true);
+  $('askform').querySelector('button').disabled = true;
+  setPill('Tutor off', ''); addMsg('sys', esc(why));
+}
+async function ask(kind, typed){
+  if (!sample){ addMsg('sys', 'The tutor is still connecting. Wait a few seconds and tap again.'); return; }
+  if (busy) return;
+  const wantImg = kind !== 'ask' || $('withwork').checked;
+  let snap = null;
+  if (wantImg && canImages) snap = await snapshot(ink, true);
+  if (!snap && (kind === 'check' || kind === 'grade')){ addMsg('sys', canImages ? 'Write something on the page first, then tap Check.' : "This view can't send pictures of your work. Open the page in the Claude app or claude.ai to use Check."); return; }
+  const content = ACTIONS[kind](typed) + (snap ? '\n\n[Picture of my handwritten work attached. Blue ink = new since my last check.]' : '');
+  const me = addMsg('me', esc(kind === 'ask' ? typed : LABEL[kind]));
+  if (snap){ const im = new Image(); im.alt = 'Your work as sent'; im.src = URL.createObjectURL(snap.blob); me.appendChild(im); }
+  const bubble = addMsg('tutor', '<span class="thinking">Reading your work…</span>'); peekStart();
+  if (mode === 'practice' || mode === 'today'){ ensureAtt(); att[COUNT[kind]] = (att[COUNT[kind]] || 0) + 1; attDirty(); }
+  const sentSeq = ink.seq, sentKey = inkKey, sentPid = pid;
+  const ctl = new AbortController(); busy = ctl;
+  $('stopbtn').classList.remove('hidden'); $('checkbtn').disabled = true; setPill('Thinking…', '');
+  const input = [{ role:'user', content: rules() }, ...turns.slice(-12).map(t => ({ role: t.role, content: t.content })), { role:'user', content }];
+  const opts = { signal: ctl.signal, cache: false, modelTier: tier, onText: ({ text }) => { bubble.textContent = parseReply(text).body || '…'; feed.scrollTop = feed.scrollHeight; peekText(bubble.textContent); } };
+  if (snap) opts.images = [snap.blob];
+  try {
+    const res = await sample(input, opts);
+    if (inkKey !== sentKey) return;
+    const { st, body, box } = parseReply(res.text);
+    bubble.className = 'msg tutor ' + st; renderInto(bubble, body + (res.truncated ? '\n\n*(Cut short. Ask a narrower question.)*' : ''), false); peekDone(st, body);
+    const [pt, pc] = PILL[st] || PILL.info; setPill(pt, pc);
+    turns.push({ role:'user', content }, { role:'assistant', content: res.text });
+    LS.set('dif:chat:' + sentPid, turns.slice(-24));
+    if (snap){
+      ink.checked = sentSeq;
+      if ((st === 'issue' || st === 'unclear') && box && box.every(v => v >= 0 && v <= 100) && box[2] > box[0] && box[3] > box[1]){
+        const c = snap.crop;
+        ink.flag = { x0: c.x0 + box[0] / 100 * c.w, y0: c.y0 + box[1] / 100 * c.h, x1: c.x0 + box[2] / 100 * c.w, y1: c.y0 + box[3] / 100 * c.h };
+        redraw();
+        const n = document.createElement('div'); n.className = 'flagnote'; n.textContent = 'Circled on your page ↖'; bubble.appendChild(n);
+        showOnPage(ink.flag.x0, ink.flag.y0);
+      } else if (st === 'ok' || st === 'done'){ ink.flag = null; redraw(); }
+      saveInk();
+    }
+    if (st === 'issue') logMistake(sentPid, body);
+    if (att && att.pid === sentPid){
+      if (st === 'issue') att.issues = (att.issues || 0) + 1;
+      att.last = body.replace(/\s+/g, ' ').slice(0, 400);
+      if (st === 'done' && att.status === 'open') autoFinish(); else flushAtt();
+    } else if (st === 'done') addMsg('sys', 'Solved. Mark this try with ✓ (alone) or ~ (needed help) up top.');
+  } catch (e) {
+    const code = e && e.code;
+    if (code === 'cancelled'){ bubble.textContent = (e.text ? parseReply(e.text).body + ' ' : '') + '(stopped)'; setPill('Ready', ''); }
+    else if (FATAL.includes(code)){ bubble.remove(); disableTutor('The tutor needs permission to use Claude. Open this page in the Claude app or on claude.ai and allow it when asked.'); }
+    else if (code === 'images_unavailable'){ canImages = false; bubble.textContent = "This view can't send pictures of your work. Open it in the Claude app or claude.ai."; setPill('Ready', ''); }
+    else { bubble.className = 'msg sys'; bubble.textContent = (e && e.text ? parseReply(e.text).body + '\n\n' : '') + (ERRCOPY[code] || 'Connection hiccup. Tap again.'); setPill('Ready', ''); }
+    peekText(bubble.textContent);
+  } finally { busy = null; $('stopbtn').classList.add('hidden'); $('checkbtn').disabled = false; }
+}
+$('checkbtn').onclick = () => ask('check');
+$('hintbtn').onclick = () => ask('hint');
+$('explainbtn').onclick = () => ask('explain');
+$('gradebtn').onclick = () => ask('grade');
+$('stopbtn').onclick = () => busy && busy.abort();
+$('askform').addEventListener('submit', e => { e.preventDefault(); const q = $('askbox').value.trim(); if (!q) return; $('askbox').value = ''; ask('ask', q); });
+$('askbox').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('askform').requestSubmit(); } });
+function setTier(t){ tier = t; LS.set('dif:tier', t); $('tier-careful').setAttribute('aria-pressed', t === 'default'); $('tier-fast').setAttribute('aria-pressed', t === 'quick'); }
+$('tier-careful').onclick = () => setTier('default'); $('tier-fast').onclick = () => setTier('quick'); setTier(tier);
+let solArmed = 0;
+$('solbtn').onclick = () => {
+  if (Date.now() - solArmed > 3000){ solArmed = Date.now(); $('solbtn').textContent = 'Tap again to reveal'; setTimeout(() => $('solbtn').textContent = 'Show solution', 3000); return; }
+  $('solbtn').textContent = 'Show solution';
+  if (mode === 'practice' || mode === 'today'){ ensureAtt(); att.solution = true; flushAtt(); }
+  const p = BY[pid];
+  const parts = [`#### Solution, ${p.id}`, `**Key idea.** ${p.key}`];
+  if (p.steps && p.steps.length) parts.push(p.steps.map((s, i) => `${i + 1}. ${s}`).join('\n'));
+  parts.push(`**Answer.** ${p.ans}`);
+  if (p.check) parts.push(`**Check.** ${p.check}`);
+  const d = addMsg('sol', '', false); renderInto(d, parts.join('\n\n'), false);
+  if (p.trap){ const t = document.createElement('div'); t.className = 'trap'; d.appendChild(t); renderInto(t, '**Point-loser.** ' + p.trap, false); }
+  addMsg('sys', 'Now redo it from a blank page (Clear) without looking, and mark this try ~.');
+};
+$('newchat').onclick = () => { turns = []; LS.set('dif:chat:' + pid, []); feed.innerHTML = ''; intro(); };
+
+function logMistake(id, note){
+  progress.mistakes.push({ pid:id, note: note.replace(/\s+/g, ' ').slice(0, 240), at: new Date().toISOString() });
+  if (progress.mistakes.length > 200) progress.mistakes = progress.mistakes.slice(-200);
+  renderLog(); persistProgress();
+}
+function renderLog(){
+  $('logcount').textContent = progress.mistakes.length;
+  const L = $('loglist'); L.innerHTML = '';
+  if (!progress.mistakes.length){ L.innerHTML = '<span class="note">Lines the tutor flags land here. Review them Dec 4 morning.</span>'; return; }
+  for (const m of progress.mistakes.slice(-40).reverse()){
+    const b = document.createElement('button'); b.className = 'logitem'; b.innerHTML = `<b>${esc(m.pid)}</b>`;
+    const s = document.createElement('span'); b.appendChild(s); b.onclick = () => { if (mode !== 'practice') setMode('practice'); openProblem(m.pid); };
+    L.appendChild(b); renderInto(s, m.note, true);
+  }
+}
+function intro(){ addMsg('sys', md(`Work **${pid}** on the grid with your Pencil. Tap **Check my work** after each step or two. New ink shows up blue for the tutor, and a wrong line gets circled on your page.`, false)); }
+function openProblem(id){
+  $('peek').classList.add('hidden');
+  if (busy) busy.abort();
+  flushAtt();
+  saveInk();
+  pid = id; LS.set('dif:last', pid); sel.value = pid;
+  loadInk('dif:ink:' + pid);
+  turns = LS.get('dif:chat:' + pid, []);
+  feed.innerHTML = '';
+  showProblem(BY[pid]); setPill('Ready', '');
+  if (turns.length){
+    addMsg('sys', 'Earlier chat on this problem:');
+    for (const t of turns.slice(-8)){
+      if (t.role === 'user') addMsg('me', esc(t.content.split('\n\n[Picture')[0]));
+      else { const r = parseReply(t.content); addMsg('tutor ' + r.st, r.body, true); }
+    }
+  } else intro();
+  if (mode === 'today') renderToday();
+}
+
+/* ---------------- Today: spaced-repetition queue ---------------- */
+const PLAN = {
+  '2026-11-16':['A'], '2026-11-17':['B'], '2026-11-18':['C'], '2026-11-19':['D'], '2026-11-20':['E'], '2026-11-21':['F'],
+  '2026-11-22':['K'], '2026-11-23':['A','C','K'], '2026-11-24':['B','H'], '2026-11-25':['D','L'], '2026-11-26':['L','G'], '2026-11-27':['E','F'],
+  '2026-11-28':['G','W'], '2026-11-29':['Q','L'], '2026-11-30':['R','K'], '2026-12-01':['B','F','L'], '2026-12-02':['G','H','W'],
+  '2026-12-03':['R','L','K'], '2026-12-04':[], '2026-12-05':[]
+};
+const TAGRANK = { midterm:0, quiz:1, hw:2, lecture:3, practice:4, extra:5 };
+const FILL = ['X', 'Q', 'L', 'R', 'K'];
+let today = LS.get('dif:today', { date:'', ids:[], why:{} });
+function buildToday(force){
+  const ver = 'v4' + (focus ? 'f' : 'a');
+  if (!force && today.date === dayKey() && today.ids.length && today.ver === ver) { renderToday(); return; }
+  const now = Date.now(), why = {};
+  const due = P.filter(p => p.final && inFocus(p)).map(p => [p, srInfo(p.id)]).filter(([, s]) => s.seen && s.due <= now)
+    .sort((a, b) => ({ '✗':0, '~':1, '✓':2 }[a[1].last] - { '✗':0, '~':1, '✓':2 }[b[1].last]) || a[1].due - b[1].due).slice(0, 15);
+  due.forEach(([p, s]) => why[p.id] = s.last === '✗' ? 'x' : s.last === '~' ? 'm' : 'ok');
+  const plan = PLAN[dayKey()];
+  const sets = plan && plan.length ? plan : null;
+  const rank = p => { const i = sets ? sets.indexOf(p.set) : -1; if (i >= 0) return i; const j = FILL.indexOf(p.set); return j >= 0 ? 10 + j : 50; };
+  let fresh = P.filter(p => p.final && inFocus(p) && !srInfo(p.id).seen);
+  fresh.sort((a, b) => rank(a) - rank(b) || TAGRANK[a.tag] - TAGRANK[b.tag] || ALL_ORDER.indexOf(a.id) - ALL_ORDER.indexOf(b.id));
+  fresh = fresh.slice(0, Math.max(6, 14 - due.length));
+  fresh.forEach(p => why[p.id] = 'new');
+  today = { date: dayKey(), ver, ids: [...due.map(([p]) => p.id), ...fresh.map(p => p.id)], why, sets: sets || [] };
+  LS.set('dif:today', today); renderToday();
+}
+const isDoneToday = id => srInfo(id).today;
+function nextInQueue(){ const i = Math.max(0, today.ids.indexOf(pid)); return today.ids.slice(i).concat(today.ids.slice(0, i)).find(id => !isDoneToday(id)) || null; }
+function renderToday(){
+  const s = $('todaystrip'); s.innerHTML = '';
+  const done = today.ids.filter(isDoneToday).length;
+  const nDue = Object.values(today.why).filter(w => w !== 'new').length;
+  const sum = document.createElement('span'); sum.className = 'sum';
+  sum.innerHTML = `<b>${done}/${today.ids.length}</b> done · ${nDue} review${nDue === 1 ? '' : 's'} due${today.sets && today.sets.length ? ' · new: Set ' + today.sets.join(', ') + ', then midterm & Ch 2–3' : ''}${focus ? ' · graded problems only' : ''}`;
+  s.appendChild(sum);
+  for (const id of today.ids){
+    const b = document.createElement('button'); b.className = `qchip r-${today.why[id] || 'new'}${isDoneToday(id) ? ' done' : ''}`;
+    b.innerHTML = `<span class="dot"></span>${esc(id)}`; b.setAttribute('aria-current', id === pid ? 'true' : 'false');
+    b.title = { x:'Missed last time', m:'Needed help last time', ok:'Review to lock it in', new:'New today' }[today.why[id]] || '';
+    b.onclick = () => openProblem(id); s.appendChild(b);
+  }
+  const lg = document.createElement('span'); lg.className = 'legend';
+  lg.innerHTML = '<span><i style="background:var(--bad)"></i>missed</span><span><i style="background:var(--warn)"></i>needed help</span><span><i style="background:var(--ok)"></i>review</span><span><i style="background:var(--accent)"></i>new</span>';
+  s.appendChild(lg);
+  const rb = document.createElement('button'); rb.className = 'qchip'; rb.textContent = 'Rebuild'; rb.title = "Pull in anything newly due"; rb.onclick = () => { buildToday(true); const n = nextInQueue(); if (n) openProblem(n); };
+  s.appendChild(rb);
+  if (!today.ids.length) sum.innerHTML = 'Nothing due right now. Switch to Practice or Recognize, or come back tomorrow.';
+}
+
+/* ---------------- Exam mode ---------------- */
+const EW = { linear1:3, separable:2, exact:1, exactmu:2, eu:2, classify:1, model:1, const2:2, euler:2, wronskian:2, reduction:2, uc:2, vop:2,
+  series_sol:3, radius:2, singular:2, taylor_ode:1, series_basics:1, taylor:1, shift:1, lap_def:2, lap_inv:2, lap_ivp:3, step:1, step_ivp:2 };
+const SCOPES = { full:{ name:'Whole final', fams:['1st','2nd','ser','lap'] }, early:{ name:'Ch 2–3 only', fams:['1st','2nd'] }, late:{ name:'Ch 5–6 only', fams:['ser','lap'] } };
+const LENGTHS = { short:{ n:5, min:50, name:'Short mock', note:'5 problems · 50 min' }, full:{ n:8, min:110, name:'Full mock', note:'8 problems · 1 h 50, like the final' } };
+let examCfg = LS.get('dif:examcfg', { len:'full', scope:'full' });
+const activeExam = () => LS.get('dif:exam', null);
+const saveExam = ex => LS.set('dif:exam', ex);
+function pickWeighted(items, wf){ const tot = items.reduce((a, x) => a + wf(x), 0); let r = Math.random() * tot; for (const x of items){ r -= wf(x); if (r <= 0) return x; } return items[items.length - 1]; }
+function generateExam(){
+  const L = LENGTHS[examCfg.len], S = SCOPES[examCfg.scope];
+  const used = new Set(progress.exams.slice(-4).flatMap(e => e.items.map(i => i.pid)));
+  const famGroups = examCfg.scope === 'full' ? [['1st','2nd'], ['ser','lap']] : [S.fams];
+  const per = famGroups.map((g, i) => Math.round(L.n / famGroups.length) + (i === 0 && L.n % famGroups.length ? 0 : 0));
+  if (famGroups.length === 2) per[1] = L.n - per[0];
+  const ids = [];
+  famGroups.forEach((fams, gi) => {
+    let methods = Object.keys(EW).filter(m => fams.includes(METH[m].fam));
+    for (let k = 0; k < per[gi] && methods.length; k++){
+      const m = pickWeighted(methods, x => EW[x]); methods = methods.filter(x => x !== m);
+      let pool = P.filter(p => p.final && p.method === m && p.set !== 'W' && !ids.includes(p.id));
+      if (pool.some(inFocus)) pool = pool.filter(inFocus);
+      if (!pool.length){ k--; continue; }
+      const p = pickWeighted(pool, p => (p.tag === 'midterm' ? 4 : p.tag === 'quiz' || p.tag === 'hw' ? 3 : 1) * (used.has(p.id) ? 0.3 : 1) * (srInfo(p.id).drilled ? 0.5 : 1.5));
+      ids.push(p.id);
+    }
+  });
+  return shuffle(ids);
+}
+function renderExamSetup(){
+  const el = $('examsetup');
+  const past = progress.exams.slice(-6).reverse();
+  el.innerHTML = `<div class="panel">
+    <h1>Mock exam</h1>
+    <p>Mixed problems with no labels, timed, no checks or hints, the way the final will feel. Your formula sheet is allowed (button up top), same as on Dec 5. When you submit, every page gets graded out of 10 like the professor would, and each problem gets marked in your queue.</p>
+    <h2>Length</h2><div class="cards" id="lenopts"></div>
+    <h2>Material</h2><div class="cards" id="scopeopts"></div>
+    <div><button class="btn-primary" id="startexam">Start the clock</button></div>
+    <div class="box"><h2 style="margin-bottom:8px">Past mocks</h2><div id="pastexams"></div></div>
+  </div>`;
+  for (const [k, v] of Object.entries(LENGTHS)){ const b = document.createElement('button'); b.className = 'opt'; b.setAttribute('aria-pressed', examCfg.len === k); b.innerHTML = `<b>${v.name}</b><span>${v.note}</span>`; b.onclick = () => { examCfg.len = k; LS.set('dif:examcfg', examCfg); renderExamSetup(); }; $('lenopts').appendChild(b); }
+  const sn = { full:'Ch 2, 3, 5, 6 — half and half', early:'First-order + second-order', late:'Series + Laplace' };
+  for (const [k, v] of Object.entries(SCOPES)){ const b = document.createElement('button'); b.className = 'opt'; b.setAttribute('aria-pressed', examCfg.scope === k); b.innerHTML = `<b>${v.name}</b><span>${sn[k]}</span>`; b.onclick = () => { examCfg.scope = k; LS.set('dif:examcfg', examCfg); renderExamSetup(); }; $('scopeopts').appendChild(b); }
+  $('pastexams').innerHTML = past.length ? `<table class="res"><tr><th>When</th><th>Mock</th><th>Score</th><th>Time</th></tr>${past.map(e => `<tr><td>${new Date(e.at).toLocaleDateString(undefined, { month:'short', day:'numeric' })}</td><td>${esc(e.label)}</td><td class="num">${e.score}/${e.total}</td><td class="num">${fmt(e.secs)}</td></tr>`).join('')}</table>` : '<span class="note">None yet. Your first full mock is on the calendar for Sun Nov 29.</span>';
+  $('startexam').onclick = () => {
+    const L = LENGTHS[examCfg.len];
+    const ex = { id: Date.now().toString(36), start: Date.now(), minutes: L.min, label: `${L.name} · ${SCOPES[examCfg.scope].name}`, ids: generateExam(), cur: 0, secs: [], results: null };
+    ex.secs = ex.ids.map(() => 0); saveExam(ex); setMode('exam');
+  };
+}
+const exInkKey = (ex, i) => `dif:exink:${ex.id}:${i}`;
+function openExamProblem(i){
+  const ex = activeExam(); if (!ex) return;
+  saveInk(); ex.cur = i; saveExam(ex);
+  const p = BY[ex.ids[i]];
+  loadInk(exInkKey(ex, i));
+  renderInto($('p-stmt'), `**Problem ${i + 1}.** ${p.stmt}`, false);
+  $('examlbl').textContent = `Problem ${i + 1} of ${ex.ids.length}`;
+  renderExamList();
+}
+function renderExamList(){
+  const ex = activeExam(); if (!ex) return;
+  const L = $('exlist'); L.innerHTML = '';
+  ex.ids.forEach((id, i) => {
+    const has = (LS.get(exInkKey(ex, i), null) || { strokes:[] }).strokes.length > 0 || (i === ex.cur && ink.strokes.length > 0);
+    const b = document.createElement('button'); b.className = 'exitem'; b.setAttribute('aria-current', i === ex.cur ? 'true' : 'false');
+    b.innerHTML = `<span class="n">${i + 1}</span><span>${has ? 'Work started' : '<span class="note">Not started</span>'}</span><span class="t" id="ext${i}">${fmt(ex.secs[i])}</span>`;
+    b.onclick = () => openExamProblem(i); L.appendChild(b);
+  });
+}
+let clock = 0, lastTick = 0;
+function startExamClock(){
+  stopExamClock(); lastTick = Date.now();
+  clock = setInterval(() => {
+    const ex = activeExam(); if (!ex || ex.results){ stopExamClock(); return; }
+    const now = Date.now(); ex.secs[ex.cur] += (now - lastTick) / 1000; lastTick = now; saveExam(ex);
+    const left = ex.minutes * 60 - (now - ex.start) / 1000;
+    const t = $('timer'); t.textContent = left >= 0 ? fmt(left) : '+' + fmt(-left); t.className = 'timer' + (left < 0 ? ' over' : left < 600 ? ' low' : '');
+    const c = $('ext' + ex.cur); if (c) c.textContent = fmt(ex.secs[ex.cur]);
+    if (left < 0 && !ex.overNoted){ ex.overNoted = true; saveExam(ex); $('exampill').textContent = "Time's up: pens down"; }
+  }, 1000);
+}
+function stopExamClock(){ clearInterval(clock); clock = 0; }
+let submitArmed = 0, quitArmed = 0;
+$('submitexam').onclick = () => {
+  if (Date.now() - submitArmed > 3000){ submitArmed = Date.now(); $('submitexam').textContent = 'Tap again to submit'; setTimeout(() => $('submitexam').textContent = 'Submit for grading', 3000); return; }
+  saveInk(); gradeExam();
+};
+$('quitexam').onclick = () => {
+  if (Date.now() - quitArmed > 3000){ quitArmed = Date.now(); $('quitexam').textContent = 'Tap again to quit'; setTimeout(() => $('quitexam').textContent = 'Quit without grading', 3000); return; }
+  const ex = activeExam(); if (ex) ex.ids.forEach((_, i) => LS.del(exInkKey(ex, i)));
+  LS.del('dif:exam'); stopExamClock(); setMode('exam');
+};
+function gradePrompt(p){
+  return `You are grading one problem from a Math 555 (Differential Equations, Boyce & DiPrima) exam, the way a strict professor would: every step must be shown, no credit for an answer alone, partial credit for a correct method and setup. For undetermined-coefficients problems only the correct FORM of the particular solution is required.
+
+PROBLEM: ${p.stmt}
+
+REFERENCE (private):
+${refBlock(p)}
+
+The attached picture is the student's complete handwritten work for this problem.
+Reply with ONLY a JSON object, no other text:
+{"score": <number 0-10, halves allowed>, "verdict": "<one short sentence>", "deductions": ["-2: <reason>", "..."], "fix": "<the one thing to fix next time>"}
+If there is no real attempt, give score 0.`;
+}
+async function gradeExam(){
+  const ex = activeExam(); if (!ex) return;
+  stopExamClock();
+  ex.ended = ex.ended || Date.now(); saveExam(ex);
+  $('workmain').classList.add('hidden'); $('exambox').classList.add('hidden');
+  const el = $('examsetup'); el.classList.remove('hidden');
+  el.innerHTML = `<div class="panel"><h1>Grading your mock</h1><p id="gradestat">Starting…</p><div><button class="btn-plain" id="stopgrade">Stop grading</button></div><div class="box" id="gradebox"></div></div>`;
+  const ctl = new AbortController(); $('stopgrade').onclick = () => ctl.abort();
+  const results = [];
+  for (let i = 0; i < ex.ids.length; i++){
+    if (ctl.signal.aborted) break;
+    const p = BY[ex.ids[i]];
+    $('gradestat').textContent = `Grading problem ${i + 1} of ${ex.ids.length}…`;
+    const inkObj = LS.get(exInkKey(ex, i), null) || { strokes:[] };
+    let r;
+    if (!inkObj.strokes.length) r = { score:0, verdict:'No work on the page.', deductions:[], fix:'Attempt every problem: setup alone earns partial credit.' };
+    else if (!sample || !canImages) r = { score:null, verdict:'Not graded: this view cannot send pictures to Claude.', deductions:[], fix:'' };
+    else {
+      try {
+        const snap = await snapshot(inkObj, false);
+        const j = await sample.json(gradePrompt(p), { images:[snap.blob], modelTier:'default', cache:false, signal: ctl.signal });
+        r = { score: Math.max(0, Math.min(10, Number(j && j.score) || 0)), verdict: String((j && j.verdict) || ''), deductions: Array.isArray(j && j.deductions) ? j.deductions.map(String).slice(0, 6) : [], fix: String((j && j.fix) || '') };
+      } catch (e) {
+        if (e && e.code === 'cancelled') break;
+        if (e && FATAL.includes(e.code)){ r = { score:null, verdict:'Not graded: the page is not allowed to use Claude.', deductions:[], fix:'' }; }
+        else r = { score:null, verdict: ERRCOPY[e && e.code] || 'Grading failed for this one (connection).', deductions:[], fix:'' };
+      }
+    }
+    results.push({ pid: p.id, secs: Math.round(ex.secs[i]), ...r });
+    if (inkObj.strokes.length){
+      const meta = newAttMeta(p.id, 'exam', ex.start + i);
+      Object.assign(meta, { end: ex.ended, secs: Math.round(ex.secs[i]), score: r.score, exam: ex.label, last: r.verdict.slice(0, 300), strokes: inkObj.strokes.length,
+        status: r.score === null ? 'open' : r.score >= 8 ? 'solved' : r.score >= 5 ? 'help' : 'missed' });
+      store.save(meta, inkObj.strokes);
+    }
+    $('gradebox').innerHTML = resultsTable(results);
+  }
+  ex.results = results; saveExam(ex);
+  const graded = results.filter(r => r.score !== null);
+  for (const r of graded) addMark(r.pid, r.score >= 8 ? '✓' : r.score >= 5 ? '~' : '✗');
+  const total = graded.length * 10, score = graded.reduce((a, r) => a + r.score, 0);
+  progress.exams.push({ at: ex.start, label: ex.label, score: Math.round(score * 2) / 2, total, secs: Math.round((ex.ended - ex.start) / 1000), items: results.map(r => ({ pid:r.pid, score:r.score, secs:r.secs })) });
+  if (progress.exams.length > 20) progress.exams = progress.exams.slice(-20);
+  persistProgress(); buildPicker();
+  showExamResults(ex);
+}
+function scClass(s){ return s === null ? '' : s >= 8 ? 'sc-ok' : s >= 5 ? 'sc-mid' : 'sc-bad'; }
+function resultsTable(results){
+  return `<table class="res"><tr><th>#</th><th>Problem</th><th>Score</th><th>Time</th><th>What cost points</th></tr>${results.map((r, i) => `<tr>
+    <td class="num">${i + 1}</td><td><b>${esc(r.pid)}</b><br><span class="note">${esc(METH[BY[r.pid].method].name)}</span></td>
+    <td class="num ${scClass(r.score)}">${r.score === null ? '—' : r.score + '/10'}</td><td class="num">${fmt(r.secs)}</td>
+    <td class="mdcell" data-i="${i}"></td></tr>`).join('')}</table>`;
+}
+function showExamResults(ex){
+  const res = ex.results, graded = res.filter(r => r.score !== null);
+  const score = graded.reduce((a, r) => a + r.score, 0), total = graded.length * 10, pct = total ? Math.round(100 * score / total) : 0;
+  const el = $('examsetup'); el.classList.remove('hidden');
+  el.innerHTML = `<div class="panel">
+    <h1>${esc(ex.label)}: results</h1>
+    <div class="box" style="display:flex;gap:24px;flex-wrap:wrap;align-items:baseline">
+      <div><div class="note">Score</div><div class="score-big ${scClass(total ? 10 * score / total : null)}">${score}/${total}</div></div>
+      <div><div class="note">Percent</div><div class="score-big">${pct}%</div></div>
+      <div><div class="note">Time used</div><div class="score-big">${fmt((ex.ended - ex.start) / 1000)}</div><div class="note">of ${ex.minutes}:00</div></div>
+    </div>
+    <p>Every problem was marked in your queue (8+ = ✓, 5–7.5 = ~, under 5 = ✗), so misses come back in <b>Today</b>. Open any one in Practice to redo it with the tutor.</p>
+    <div class="box">${resultsTable(res)}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" id="examdone">Done</button></div>
+  </div>`;
+  el.querySelectorAll('.mdcell').forEach(td => {
+    const r = res[+td.dataset.i];
+    const text = [r.verdict, ...(r.deductions || []).map(d => '- ' + d), r.fix ? '**Fix:** ' + r.fix : ''].filter(Boolean).join('\n');
+    renderInto(td, text, false);
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = 'Redo in Practice'; b.style.marginTop = '6px';
+    b.onclick = () => { LS.del('dif:exam'); setMode('practice'); openProblem(r.pid); }; td.appendChild(b);
+  });
+  $('examdone').onclick = () => { ex.ids.forEach((_, i) => LS.del(exInkKey(ex, i))); LS.del('dif:exam'); setMode('exam'); };
+}
+
+/* ---------------- Recognize: method-recognition drill ---------------- */
+const ROUND = 12, SECS = 10;
+let rec = null, recTimer = 0;
+function recAcc(m){ const s = progress.recog[m]; return s && s[1] ? s[0] / s[1] : 0.5; }
+function renderRecogStart(){
+  const el = $('recog');
+  const stats = Object.keys(METH).filter(m => progress.recog[m]).map(m => [m, progress.recog[m]]).sort((a, b) => a[1][0] / a[1][1] - b[1][0] / b[1][1]);
+  el.innerHTML = `<div class="panel">
+    <h1>Recognize the method</h1>
+    <p>A problem flashes up. You get ${SECS} seconds to pick the method, without solving it. This trains the move that matters when an exam question looks unfamiliar: knowing what to do first. ${ROUND} cards per round; methods you miss come up more often.</p>
+    <div><button class="btn-primary" id="recstart">Start a round</button></div>
+    <div class="box"><h2 style="margin-bottom:10px">Your accuracy by method</h2>${stats.length ? `<div class="statrow">${stats.map(([m, s]) => { const a = Math.round(100 * s[0] / s[1]); const col = a >= 80 ? 'var(--ok)' : a >= 50 ? 'var(--warn)' : 'var(--bad)'; return `<div>${esc(METH[m].name)}<div class="bar"><i style="width:${a}%;background:${col}"></i></div></div><div class="note" style="font-variant-numeric:tabular-nums">${s[0]}/${s[1]}</div>`; }).join('')}</div>` : '<span class="note">No rounds yet.</span>'}</div>
+  </div>`;
+  $('recstart').onclick = startRound;
+}
+function startRound(){
+  const pool = P.filter(p => p.final && p.set !== 'W' && inFocus(p));
+  const cards = [], perMethod = {};
+  while (cards.length < ROUND && cards.length < pool.length){
+    const p = pickWeighted(pool.filter(x => !cards.includes(x) && (perMethod[x.method] || 0) < 2), x => 1 + 3 * (1 - recAcc(x.method)) + (progress.recogMiss[x.id] ? 2 : 0));
+    if (!p) break; cards.push(p); perMethod[p.method] = (perMethod[p.method] || 0) + 1;
+  }
+  rec = { cards, i: 0, results: [] }; showCard();
+}
+function optionsFor(p){
+  const fam = METH[p.method].fam, all = Object.keys(METH).filter(m => m !== p.method);
+  const same = shuffle(all.filter(m => METH[m].fam === fam)).slice(0, 3);
+  const other = shuffle(all.filter(m => METH[m].fam !== fam)).slice(0, 5 - same.length);
+  return shuffle([p.method, ...same, ...other]);
+}
+function showCard(){
+  clearTimeout(recTimer);
+  const el = $('recog'), p = rec.cards[rec.i], opts = optionsFor(p);
+  rec.opts = opts; rec.t0 = Date.now(); rec.answered = false;
+  el.innerHTML = `<div class="panel"><div class="rcard">
+    <div class="rtop"><span>Card ${rec.i + 1} of ${rec.cards.length}</span><span>${rec.results.filter(r => r.ok).length} right</span></div>
+    <div class="rbar"><i id="rbar"></i></div>
+    <div class="rstmt" id="rstmt"></div>
+    <div class="ropts" id="ropts">${opts.map((m, k) => `<button class="ropt" data-m="${m}"><kbd>${k + 1}</kbd>${esc(METH[m].name)}</button>`).join('')}</div>
+    <div id="rfb"></div>
+  </div></div>`;
+  renderInto($('rstmt'), p.stmt, false);
+  const bar = $('rbar'); bar.style.transition = 'none'; bar.style.width = '100%';
+  requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.transition = `width ${SECS}s linear`; bar.style.width = '0%'; }));
+  el.querySelectorAll('.ropt').forEach(b => b.onclick = () => answer(b.dataset.m));
+  recTimer = setTimeout(() => answer(null), SECS * 1000);
+}
+function answer(m){
+  if (!rec || rec.answered) return;
+  rec.answered = true; clearTimeout(recTimer);
+  const p = rec.cards[rec.i], ok = m === p.method, secs = (Date.now() - rec.t0) / 1000;
+  rec.results.push({ id: p.id, ok, picked: m, secs });
+  const s = progress.recog[p.method] = progress.recog[p.method] || [0, 0]; s[1]++; if (ok) s[0]++;
+  if (!ok) progress.recogMiss[p.id] = (progress.recogMiss[p.id] || 0) + 1; else if (progress.recogMiss[p.id]) progress.recogMiss[p.id]--;
+  persistProgress();
+  const bar = $('rbar'); const w = getComputedStyle(bar).width; bar.style.transition = 'none'; bar.style.width = w;
+  document.querySelectorAll('.ropt').forEach(b => { b.disabled = true; if (b.dataset.m === p.method) b.classList.add('right'); else if (b.dataset.m === m) b.classList.add('wrong'); });
+  const fb = $('rfb'); fb.className = 'rfeedback';
+  fb.innerHTML = `<div><b>${ok ? 'Right' : m ? 'Not quite' : "Time's up"}.</b> ${esc(METH[p.method].name)} · <span class="note">${esc(p.id)}, ${esc(p.src)}</span></div><div id="rkey" style="margin-top:6px"></div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" id="rnext">${rec.i + 1 < rec.cards.length ? 'Next card' : 'See results'}</button>${(M2C[p.method] || []).length ? `<button class="btn-plain" id="rsheet">On your sheet: card ${M2C[p.method][0]}</button>` : ''}</div>`;
+  renderInto($('rkey'), '**First move:** ' + p.key, false);
+  $('rnext').onclick = nextCard; $('rnext').focus();
+  if ($('rsheet')) $('rsheet').onclick = () => openSheet(M2C[p.method][0]);
+}
+function nextCard(){ rec.i++; if (rec.i < rec.cards.length) showCard(); else recSummary(); }
+function recSummary(){
+  const el = $('recog'), R = rec.results, right = R.filter(r => r.ok).length, avg = R.reduce((a, r) => a + r.secs, 0) / R.length;
+  const miss = R.filter(r => !r.ok);
+  el.innerHTML = `<div class="panel">
+    <h1>${right}/${R.length} recognized</h1>
+    <p>Average ${avg.toFixed(1)} s per card. ${right === R.length ? 'Clean round.' : 'Misses come back more often in the next round.'}</p>
+    ${miss.length ? `<div class="box"><h2 style="margin-bottom:8px">Missed</h2><table class="res"><tr><th>Problem</th><th>Method</th><th>You picked</th><th></th></tr>${miss.map(r => `<tr><td><b>${esc(r.id)}</b></td><td>${esc(METH[BY[r.id].method].name)}</td><td class="note">${r.picked ? esc(METH[r.picked].name) : 'no answer'}</td><td><button class="chip" data-open="${esc(r.id)}">Work it</button></td></tr>`).join('')}</table></div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-primary" id="recagain">Another round</button><button class="btn-plain" id="recstats">Accuracy by method</button></div>
+  </div>`;
+  el.querySelectorAll('[data-open]').forEach(b => b.onclick = () => { setMode('practice'); openProblem(b.dataset.open); });
+  $('recagain').onclick = startRound; $('recstats').onclick = renderRecogStart;
+}
+document.addEventListener('keydown', e => {
+  if (mode !== 'recog' || !rec || (e.target.closest && e.target.closest('textarea,input,select'))) return;
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('button')) return;
+  if (!rec.answered && /^[1-6]$/.test(e.key) && rec.opts[+e.key - 1]) answer(rec.opts[+e.key - 1]);
+  else if (rec.answered && (e.key === 'Enter' || e.key === ' ')){ e.preventDefault(); nextCard(); }
+});
+
+/* ---------------- Formula sheet drawer ---------------- */
+function sheetCards(p){
+  const fam = METH[p.method].fam, pl = fam === '1st' || fam === '2nd' ? '29' : '14';
+  return [...(M2C[p.method] || []), pl].map(c => `card ${c} (${CARDS[c].title})`).join(', ');
+}
+const sheetEl = $('sheet'), sbody = $('sheetbody'), spage = $('sheetpage'), simg = $('sheetimg');
+let sheetSide = 1, sheetZ = LS.get('dif:sheetz', 0), sheetSrc = {}, sheetFocus = null, pinch = null;
+(function buildJump(){
+  const s = $('cardjump'); s.innerHTML = '<option value="">Jump to card…</option>';
+  for (const [pg, name] of [[1, 'Front · Ch 2–3'], [2, 'Back · Ch 5–6']]){
+    const g = document.createElement('optgroup'); g.label = name;
+    for (const [id, c] of Object.entries(CARDS)) if (c.page === pg){ const o = document.createElement('option'); o.value = id; o.textContent = `${id} · ${c.title}`; g.appendChild(o); }
+    s.appendChild(g);
+  }
+  s.onchange = () => { if (s.value) openSheet(s.value); };
+})();
+async function sheetUrl(n){
+  if (sheetSrc[n]) return sheetSrc[n];
+  if (window.SHEETS && SHEETS[n]){ sheetSrc[n] = SHEETS[n]; return sheetSrc[n]; }
+  try { const r = await fetch(`sheet-${n}.webp`); if (!r.ok) throw new Error(r.status); sheetSrc[n] = URL.createObjectURL(await r.blob()); }
+  catch { sheetSrc[n] = `sheet-${n}.webp`; }
+  return sheetSrc[n];
+}
+const defaultZ = () => sbody.clientWidth < 1000 ? 2 : 1.15;
+function applyZ(z, cx, cy){
+  z = Math.max(1, Math.min(4, z));
+  const W0 = spage.offsetWidth || 1, H0 = spage.offsetHeight || 1;
+  if (cx === undefined){ cx = sbody.clientWidth / 2; cy = sbody.clientHeight / 2; }
+  const fx = (sbody.scrollLeft + cx) / W0, fy = (sbody.scrollTop + cy) / H0;
+  sheetZ = z; spage.style.width = (z * 100) + '%';
+  sbody.scrollLeft = fx * spage.offsetWidth - cx; sbody.scrollTop = fy * spage.offsetHeight - cy;
+}
+function drawHL(){
+  const h = $('sheethl'); h.innerHTML = '';
+  const c = sheetFocus && CARDS[sheetFocus]; if (!c || c.page !== sheetSide) return;
+  for (const b of c.boxes){ const d = document.createElement('div'); d.className = 'hl'; Object.assign(d.style, { left: b[0] + '%', top: b[1] + '%', width: (b[2] - b[0]) + '%', height: (b[3] - b[1]) + '%' }); h.appendChild(d); }
+}
+async function setSide(n){
+  sheetSide = n;
+  $('side1').setAttribute('aria-pressed', n === 1 ? 'true' : 'false'); $('side2').setAttribute('aria-pressed', n === 2 ? 'true' : 'false');
+  simg.alt = n === 1 ? 'Formula sheet front: Chapters 2 and 3, cards 18 to 30' : 'Formula sheet back: Chapters 5 and 6, cards 1 to 17';
+  drawHL();
+  const u = await sheetUrl(n); if (sheetSide === n && simg.getAttribute('src') !== u) simg.src = u;
+}
+async function openSheet(card){
+  const wasHidden = sheetEl.classList.contains('hidden');
+  sheetEl.classList.remove('hidden'); $('sheetbtn').setAttribute('aria-pressed', 'true');
+  if (wasHidden){ if (!sheetZ) sheetZ = defaultZ(); spage.style.width = (sheetZ * 100) + '%'; }
+  if (card && CARDS[card]){
+    sheetFocus = card; $('cardjump').value = card;
+    const c = CARDS[card], b = c.boxes[0];
+    const turn = c.page !== sheetSide; await setSide(c.page);
+    requestAnimationFrame(() => sbody.scrollTo({ left: Math.max(0, b[0] / 100 * spage.offsetWidth - 10), top: Math.max(0, b[1] / 100 * spage.offsetHeight - 14), behavior: turn || wasHidden ? 'auto' : 'smooth' }));
+  } else await setSide(sheetSide);
+}
+function closeSheet(){ sheetEl.classList.add('hidden'); $('sheetbtn').setAttribute('aria-pressed', 'false'); }
+$('sheetbtn').onclick = () => sheetEl.classList.contains('hidden') ? openSheet() : closeSheet();
+$('sheetclose').onclick = closeSheet;
+$('side1').onclick = () => { sbody.scrollTop = 0; setSide(1); };
+$('side2').onclick = () => { sbody.scrollTop = 0; setSide(2); };
+$('zin').onclick = () => { applyZ(sheetZ * 1.25); LS.set('dif:sheetz', sheetZ); };
+$('zout').onclick = () => { applyZ(sheetZ / 1.25); LS.set('dif:sheetz', sheetZ); };
+$('sheetwide').onclick = () => { const w = sheetEl.classList.toggle('wide'); $('sheetwide').setAttribute('aria-pressed', w ? 'true' : 'false'); };
+const tdist = e => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+sbody.addEventListener('touchstart', e => { if (e.touches.length === 2){ e.preventDefault(); pinch = { d: tdist(e) || 1, z: sheetZ }; } }, { passive:false });
+sbody.addEventListener('touchmove', e => {
+  if (!pinch || e.touches.length !== 2) return;
+  e.preventDefault(); const r = sbody.getBoundingClientRect();
+  applyZ(pinch.z * tdist(e) / pinch.d, (e.touches[0].clientX + e.touches[1].clientX) / 2 - r.left, (e.touches[0].clientY + e.touches[1].clientY) / 2 - r.top);
+}, { passive:false });
+sbody.addEventListener('touchend', e => { if (pinch && e.touches.length < 2){ pinch = null; LS.set('dif:sheetz', sheetZ); } });
+sbody.addEventListener('gesturestart', e => e.preventDefault());
+sbody.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); const r = sbody.getBoundingClientRect(); applyZ(sheetZ * Math.exp(-e.deltaY / 200), e.clientX - r.left, e.clientY - r.top); LS.set('dif:sheetz', sheetZ); }, { passive:false });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheetEl.classList.contains('hidden')) closeSheet(); });
+
+function setFocus(f){
+  focus = f; LS.set('dif:focus', f);
+  $('focusbtn').setAttribute('aria-pressed', f ? 'true' : 'false');
+  $('focusbtn').textContent = f ? 'Focus: quizzes · HW · midterm' : 'All problems';
+  ORDER = ALL_ORDER.filter(id => inFocus(BY[id]));
+  buildPicker();
+  if (mode === 'today'){ buildToday(true); const n = nextInQueue(); if (n) openProblem(n); }
+  else if (mode === 'recog' && !rec) renderRecogStart();
+}
+$('focusbtn').onclick = () => setFocus(!focus);
+$('focusbtn').setAttribute('aria-pressed', focus ? 'true' : 'false');
+$('focusbtn').textContent = focus ? 'Focus: quizzes · HW · midterm' : 'All problems';
+
+/* ---------------- Attempts: every try saved with its handwriting and outcome ---------------- */
+let att = null;
+const COUNT = { check:'checks', hint:'hints', explain:'explains', grade:'grades', ask:'asks' };
+const MARK2STATUS = { '✓':'solved', '~':'help', '✗':'missed' };
+const STATUS_TXT = { solved:'solved on your own ✓', help:'solved with help ~', missed:'missed ✗', open:'unfinished' };
+const STATUS_SHORT = { solved:'Solved alone', help:'Needed help', missed:'Missed', open:'Unfinished' };
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+function newAttMeta(pidv, md0, start){
+  const p = BY[pidv];
+  return { id: newId(), pid: pidv, method: p ? p.method : '', mode: md0, start: start || Date.now(), end: 0, status:'open',
+    checks:0, hints:0, explains:0, grades:0, asks:0, issues:0, solution:false, strokes:0, last:'', score:null, autoMark:false };
+}
+function ensureAtt(){
+  if (att && att.pid === pid) return att;
+  att = newAttMeta(pid, mode === 'today' ? 'today' : 'practice');
+  LS.set('dif:att:' + inkKey, att); return att;
+}
+const helped = a => (a.hints || 0) + (a.explains || 0) + (a.issues || 0) + (a.asks || 0) + (a.solution ? 1 : 0) > 0;
+function helpText(a){
+  const parts = [];
+  if (a.hints) parts.push(`${a.hints} hint${a.hints > 1 ? 's' : ''}`);
+  if (a.issues) parts.push(`${a.issues} flagged line${a.issues > 1 ? 's' : ''}`);
+  if (a.explains) parts.push(`${a.explains} explanation${a.explains > 1 ? 's' : ''}`);
+  if (a.asks) parts.push(`${a.asks} question${a.asks > 1 ? 's' : ''}`);
+  if (a.solution) parts.push('looked at the solution');
+  if (!parts.length && a.checks) parts.push(`${a.checks} check${a.checks > 1 ? 's' : ''}, no help`);
+  return parts.join(', ');
+}
+function finishAtt(status){
+  if (!att) return;
+  if (att.status === 'open' || !att.end) att.end = Date.now();
+  att.status = status; att.strokes = ink.strokes.length;
+  flushAtt();
+  const o = [...sel.options].find(o => o.value === pid); if (o) o.textContent = optLabel(BY[pid]);
+  if (mode === 'today') renderToday();
+}
+function autoFinish(){
+  const h = helped(att), m = h ? '~' : '✓';
+  addMark(pid, m); att.autoMark = true; finishAtt(h ? 'help' : 'solved');
+  $('markhist').textContent = progress.marks[pid] || '';
+  addMsg('sys', md(`Solved. Saved to History as **${STATUS_TXT[att.status]}**${h ? ` (${helpText(att)})` : ''}. Wrong call? Tap a different mark up top.${mode === 'today' ? ' Then tap › for the next problem.' : ''}`, false));
+}
+function replaceLastMark(id, m){
+  const L = progress.log[id]; if (L && L.length) L[L.length - 1][0] = m; else return addMark(id, m);
+  progress.marks[id] = (progress.marks[id] || '').slice(0, -1) + m; persistProgress();
+}
+function closeAtt(){
+  if (!att) return;
+  flushAtt();
+  LS.del('dif:att:' + inkKey); att = null;
+}
+let attT = 0;
+function attDirty(){ if (!att) return; LS.set('dif:att:' + inkKey, att); clearTimeout(attT); attT = setTimeout(flushAtt, 15000); }
+function flushAtt(){
+  clearTimeout(attT);
+  if (!att || !inkKey.startsWith('dif:ink:')) return;
+  att.strokes = ink.strokes.length; att.secs = Math.round(((att.end || Date.now()) - att.start) / 1000);
+  LS.set('dif:att:' + inkKey, att);
+  if (!ink.strokes.length && att.status === 'open' && !att.checks && !att.hints) return;
+  store.save({ ...att }, ink.strokes);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden'){ saveInk(); flushAtt(); } });
+
+/* Compact ink: integers (x,y at 1/4 unit, pressure 0-100), stroke times relative to the attempt start */
+function packInk(strokes, t0){
+  let pts = strokes.map(st => ({ c: st.c, w: st.w, t: Math.max(0, (st.t || t0) - t0), p: st.pts.flatMap(q => [Math.round(q[0] * 4), Math.round(q[1] * 4), Math.round(q[2] * 100)]) }));
+  let guard = 0;
+  while (JSON.stringify(pts).length > 230000 && guard++ < 4) pts = pts.map(st => ({ ...st, p: st.p.filter((_, i) => Math.floor(i / 3) % 2 === 0 || i >= st.p.length - 3) }));
+  return pts;
+}
+function unpackInk(arr){ return (arr || []).map(st => { const pts = []; for (let i = 0; i + 2 < st.p.length; i += 3) pts.push([st.p[i] / 4, st.p[i + 1] / 4, st.p[i + 2] / 100]); return { c: st.c, w: st.w, t: st.t, pts }; }); }
+
+const store = {
+  q: Promise.resolve(), sigs: {}, cache: null,
+  save(meta, strokes){
+    const packed = packInk(strokes, meta.start);
+    const sig = JSON.stringify([meta.status, meta.end, meta.checks, meta.hints, meta.explains, meta.grades, meta.asks, meta.issues, meta.solution, meta.score, meta.last, packed.length, packed.reduce((a, s) => a + s.p.length, 0)]);
+    if (this.sigs[meta.id] === sig) return; this.sigs[meta.id] = sig;
+    delete meta.autoMark;
+    if (this.cache){ const i = this.cache.findIndex(a => a.id === meta.id); if (i >= 0) this.cache[i] = meta; else this.cache.unshift(meta); }
+    // local copy (meta for everything, ink for the newest 40) so nothing is lost offline
+    const L = LS.get('dif:attempts', []); const j = L.findIndex(a => a.id === meta.id); if (j >= 0) L[j] = meta; else L.unshift(meta);
+    LS.set('dif:attempts', L.slice(0, 400));
+    try { localStorage.setItem('dif:attink:' + meta.id, JSON.stringify(packed)); } catch {}
+    const keep = new Set(L.slice(0, 40).map(a => a.id));
+    try { for (let k = localStorage.length - 1; k >= 0; k--){ const key = localStorage.key(k); if (key && key.startsWith('dif:attink:') && !keep.has(key.slice(11))) localStorage.removeItem(key); } } catch {}
+    if (!db) return;
+    this.q = this.q.then(() => db.doc('attempts/' + meta.id).set(meta)).then(() => db.doc('attemptInk/' + meta.id).set({ id: meta.id, strokes: packed }))
+      .catch(e => { if (e && e.code === 'quota_exceeded') addMsg('sys', 'Your saved attempts are full. Delete a few old ones in History.'); else delete this.sigs[meta.id]; });
+  },
+  async list(force){
+    if (this.cache && !force) return this.cache;
+    let list = LS.get('dif:attempts', []);
+    if (db){
+      try {
+        const snap = await Promise.race([db.collection('attempts').orderBy('start', 'desc').limit(1000).get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]);
+        const remote = snap.docs.map(d => ({ ...d.data() }));
+        const ids = new Set(remote.map(a => a.id));
+        list = [...remote, ...list.filter(a => !ids.has(a.id))];
+      } catch {}
+    }
+    list.sort((a, b) => b.start - a.start);
+    this.cache = list; return list;
+  },
+  async ink(id){
+    if (db){ try { const d = await db.doc('attemptInk/' + id).get(); if (d.exists) return unpackInk(d.data().strokes); } catch {} }
+    try { const v = localStorage.getItem('dif:attink:' + id); if (v) return unpackInk(JSON.parse(v)); } catch {}
+    return null;
+  },
+  async remove(id){
+    if (this.cache) this.cache = this.cache.filter(a => a.id !== id);
+    LS.set('dif:attempts', LS.get('dif:attempts', []).filter(a => a.id !== id)); LS.del('dif:attink:' + id);
+    if (db){ await this.q; try { await db.doc('attempts/' + id).delete(); await db.doc('attemptInk/' + id).delete(); } catch {} }
+  }
+};
+
+/* ---------------- History screen ---------------- */
+let hist = { filter:'all', pid:'', open:null };
+$('attbtn').onclick = () => { hist.pid = pid; hist.open = null; setMode('history'); };
+const fmtWhen = ms => new Date(ms).toLocaleString(undefined, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
+const dur = sec => sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round(sec % 3600 / 60)} min` : sec >= 60 ? `${Math.round(sec / 60)} min` : `${sec} s`;
+async function renderHistory(){
+  const el = $('history');
+  if (hist.open){ return renderAttempt(hist.open); }
+  el.innerHTML = '<div class="panel"><h1>History</h1><p class="note">Loading your attempts…</p></div>';
+  const all = await store.list(true);
+  if (mode !== 'history' || hist.open) return;
+  const wk = Date.now() - 7 * DAY;
+  const done = all.filter(a => a.status !== 'open');
+  const cnt = st => done.filter(a => a.status === st).length;
+  const list = all.filter(a => (hist.filter === 'all' || a.status === hist.filter) && (!hist.pid || a.pid === hist.pid));
+  el.innerHTML = `<div class="panel">
+    <h1>History</h1>
+    <div class="stats">
+      <div class="stat"><div class="n">${all.length}</div><div class="l">attempts saved</div></div>
+      <div class="stat"><div class="n sc-ok">${cnt('solved')}</div><div class="l">solved on your own</div></div>
+      <div class="stat"><div class="n sc-mid">${cnt('help')}</div><div class="l">solved with help</div></div>
+      <div class="stat"><div class="n sc-bad">${cnt('missed')}</div><div class="l">missed</div></div>
+      <div class="stat"><div class="n">${all.filter(a => a.start > wk).length}</div><div class="l">this week</div></div>
+    </div>
+    <div class="filters" id="hfilters"></div>
+    <div class="hlist" id="hlist"></div>
+  </div>`;
+  const F = $('hfilters');
+  for (const [k, label] of [['all', 'All'], ['solved', 'Solved alone'], ['help', 'Needed help'], ['missed', 'Missed'], ['open', 'Unfinished']]){
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = label; b.setAttribute('aria-pressed', hist.filter === k ? 'true' : 'false');
+    b.onclick = () => { hist.filter = k; renderHistory(); }; F.appendChild(b);
+  }
+  const sp = document.createElement('select'); sp.setAttribute('aria-label', 'Problem');
+  sp.innerHTML = '<option value="">Every problem</option>' + [...new Set(all.map(a => a.pid))].sort((a, b) => ALL_ORDER.indexOf(a) - ALL_ORDER.indexOf(b)).map(id => `<option value="${esc(id)}">${esc(id)}${BY[id] ? ' · ' + esc(BY[id].src) : ''}</option>`).join('');
+  sp.value = hist.pid; sp.onchange = () => { hist.pid = sp.value; renderHistory(); }; F.appendChild(sp);
+  const L = $('hlist');
+  if (!list.length){ L.innerHTML = `<p class="note">${all.length ? 'Nothing matches this filter.' : 'No attempts yet. Every problem you work in Practice or Today is saved here automatically: your handwriting, how long it took, and whether you needed help.'}</p>`; return; }
+  for (const a of list.slice(0, 300)){
+    const p = BY[a.pid];
+    const b = document.createElement('button'); b.className = 'hcard';
+    const score = a.score !== null && a.score !== undefined ? ` · ${a.score}/10` : '';
+    b.innerHTML = `<span class="badge ${esc(a.status)}">${esc(STATUS_SHORT[a.status] || a.status)}</span>
+      <span class="what">${esc(a.pid)} <span class="note" style="font-weight:400">${p ? esc(METH[p.method] ? METH[p.method].name : '') : ''}</span></span>
+      <span class="when">${esc(fmtWhen(a.start))}</span>
+      <span class="sub">${esc(a.mode === 'exam' ? 'Mock exam' + score : a.mode === 'today' ? 'Today queue' : 'Practice')} · ${esc(dur(a.secs || Math.round(((a.end || a.start) - a.start) / 1000)))}${helpText(a) ? ' · ' + esc(helpText(a)) : ''}</span>`;
+    b.onclick = () => { hist.open = a.id; renderAttempt(a.id); };
+    L.appendChild(b);
+  }
+}
+let replayRAF = 0;
+async function renderAttempt(id){
+  cancelAnimationFrame(replayRAF);
+  const el = $('history'), all = await store.list(false), a = all.find(x => x.id === id);
+  if (!a){ hist.open = null; return renderHistory(); }
+  const p = BY[a.pid];
+  el.innerHTML = `<div class="panel">
+    <div><button class="chip" id="hback">‹ All attempts</button></div>
+    <h1>${esc(a.pid)} <span class="badge ${esc(a.status)}" style="vertical-align:middle">${esc(STATUS_SHORT[a.status] || a.status)}</span></h1>
+    <p class="note">${esc(fmtWhen(a.start))} · ${esc(a.mode === 'exam' ? 'Mock exam' + (a.score !== null && a.score !== undefined ? `, ${a.score}/10` : '') : a.mode === 'today' ? 'Today queue' : 'Practice')} · ${esc(dur(a.secs || 0))}${helpText(a) ? ' · ' + esc(helpText(a)) : ''}</p>
+    <div class="box" id="hstmt"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn-primary" id="hreplay">▶ Replay my writing</button>
+      <button class="btn-plain" id="hredo">Redo it in Practice</button>
+      <span class="grow"></span>
+      <button class="chip" id="hdel">Delete</button>
+    </div>
+    <canvas class="inkview" id="hcanvas" aria-label="Your handwriting for this attempt"></canvas>
+    <div class="box hidden" id="hlast"></div>
+    <div class="filters" id="hmark"></div>
+  </div>`;
+  renderInto($('hstmt'), p ? p.stmt : '', false);
+  if (a.last){ $('hlast').classList.remove('hidden'); renderInto($('hlast'), `**${a.mode === 'exam' ? 'Grader' : 'Tutor, last message'}:** ${a.last}`, false); }
+  const M = $('hmark'); const lab = document.createElement('span'); lab.className = 'note'; lab.textContent = 'Change outcome:'; M.appendChild(lab);
+  for (const [st, txt] of [['solved', 'Solved alone ✓'], ['help', 'Needed help ~'], ['missed', 'Missed ✗']]){
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = txt; b.setAttribute('aria-pressed', a.status === st ? 'true' : 'false');
+    b.onclick = async () => { a.status = st; if (!a.end) a.end = a.start + (a.secs || 0) * 1000; const strokes = await store.ink(a.id) || []; store.sigs[a.id] = ''; store.save({ ...a }, strokes.map(s => ({ ...s, t: a.start + (s.t || 0) }))); renderAttempt(a.id); };
+    M.appendChild(b);
+  }
+  $('hback').onclick = () => { hist.open = null; renderHistory(); };
+  $('hredo').onclick = () => { hist.open = null; setMode('practice'); openProblem(a.pid); };
+  let delArmed = 0;
+  $('hdel').onclick = async () => { if (Date.now() - delArmed > 3000){ delArmed = Date.now(); $('hdel').textContent = 'Tap again to delete'; return; } await store.remove(a.id); hist.open = null; renderHistory(); };
+  const cvs = $('hcanvas'), strokes = await store.ink(a.id);
+  if (!strokes || !strokes.length){ cvs.replaceWith(Object.assign(document.createElement('p'), { className:'note', textContent:'No handwriting saved for this attempt.' })); $('hreplay').disabled = true; return; }
+  const bb = bbox(strokes), x0 = Math.max(0, bb.x0 - 30), y0 = Math.max(0, bb.y0 - 30), w = bb.x1 + 30 - x0, h = bb.y1 + 30 - y0;
+  const cssW = Math.min(cvs.parentElement.clientWidth || 800, 860), k = cssW / w, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const kk = Math.min(k, 4000 / (h * dpr));
+  cvs.style.width = (w * kk) + 'px'; cvs.style.height = (h * kk) + 'px'; cvs.width = Math.round(w * kk * dpr); cvs.height = Math.round(h * kk * dpr);
+  const g = cvs.getContext('2d'), COL = { ink:'#1b2230', red:'#b91c1c', green:'#15803d' };
+  const draw = (n, partial) => {
+    g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#fff'; g.fillRect(0, 0, cvs.width, cvs.height);
+    g.setTransform(kk * dpr, 0, 0, kk * dpr, -x0 * kk * dpr, -y0 * kk * dpr);
+    g.strokeStyle = '#e6ebf2'; g.lineWidth = 1 / kk; g.beginPath();
+    for (let y = Math.ceil(y0 / 40) * 40; y < y0 + h; y += 40){ g.moveTo(x0, y); g.lineTo(x0 + w, y); }
+    for (let x = Math.ceil(x0 / 40) * 40; x < x0 + w; x += 40){ g.moveTo(x, y0); g.lineTo(x, y0 + h); }
+    g.stroke();
+    for (let i = 0; i < n; i++) strokePath(g, strokes[i], COL[strokes[i].c] || COL.ink, 1.1);
+    if (partial) strokePath(g, partial, COL[partial.c] || COL.ink, 1.1);
+  };
+  draw(strokes.length);
+  $('hreplay').onclick = () => {
+    cancelAnimationFrame(replayRAF);
+    const order = strokes.map((st, i) => ({ st, i })).sort((u, v) => (u.st.t || 0) - (v.st.t || 0) || u.i - v.i).map(o => o.st);
+    strokes.splice(0, strokes.length, ...order);
+    // timeline: real gaps between strokes (capped at 0.8 s), each stroke drawn over ~0.25 s, at 2x speed
+    const sched = []; let clock = 0, prevEnd = null;
+    for (const st of strokes){ const gap = prevEnd === null ? 0 : Math.min(800, Math.max(0, (st.t || 0) - prevEnd)); clock += gap / 2; const d = Math.min(400, 40 + st.pts.length * 4) / 2; sched.push([clock, d]); clock += d; prevEnd = (st.t || 0) + d * 2; }
+    const t0 = performance.now(); $('hreplay').textContent = '▶ Replaying…';
+    const step = now => {
+      const el2 = now - t0; let n = 0; while (n < strokes.length && sched[n][0] + sched[n][1] <= el2) n++;
+      let partial = null;
+      if (n < strokes.length && el2 > sched[n][0]){ const f = (el2 - sched[n][0]) / sched[n][1]; partial = { ...strokes[n], pts: strokes[n].pts.slice(0, Math.max(1, Math.round(f * strokes[n].pts.length))) }; }
+      draw(n, partial);
+      if (n < strokes.length && $('hcanvas')) replayRAF = requestAnimationFrame(step); else if ($('hreplay')) $('hreplay').textContent = '▶ Replay my writing';
+    };
+    replayRAF = requestAnimationFrame(step);
+  };
+}
+
+/* ---------------- Collapsible tutor panel + problem box ---------------- */
+const coachHidden = () => $('workmain').classList.contains('nocoach');
+function peekStart(){ if (!coachHidden()) return; $('peek').className = 'peek'; $('peekstat').textContent = 'Tutor'; $('peekbody').innerHTML = '<span class="thinking">Reading your work…</span>'; }
+function peekText(x){ if (!coachHidden() || $('peek').classList.contains('hidden')) return; $('peekbody').textContent = x; }
+function peekDone(st, body){ if (!coachHidden()) return; const [pt] = PILL[st] || PILL.info; $('peek').className = 'peek ' + st; $('peekstat').textContent = pt; renderInto($('peekbody'), body, false); }
+function setCoach(open){
+  $('workmain').classList.toggle('nocoach', !open);
+  $('coachbtn').setAttribute('aria-pressed', open ? 'true' : 'false');
+  LS.set('dif:coach', open);
+  if (open){ $('peek').classList.add('hidden'); feed.scrollTop = feed.scrollHeight; }
+  requestAnimationFrame(resize);
+}
+$('coachbtn').onclick = () => setCoach(coachHidden());
+$('coachhide').onclick = () => setCoach(false);
+$('examhide').onclick = () => setCoach(false);
+$('peekopen').onclick = () => setCoach(true);
+$('peekclose').onclick = () => $('peek').classList.add('hidden');
+function setProbMini(m){
+  document.querySelector('.prob').classList.toggle('mini', m);
+  $('probmin').textContent = m ? 'Show all ▾' : 'Shrink ▴'; $('probmin').setAttribute('aria-expanded', m ? 'false' : 'true');
+  LS.set('dif:probmini', m); requestAnimationFrame(resize);
+}
+$('probmin').onclick = () => setProbMini(!document.querySelector('.prob').classList.contains('mini'));
+setCoach(LS.get('dif:coach', true));
+setProbMini(LS.get('dif:probmini', false));
+
+/* ---------------- Boot ---------------- */
+buildPicker(); renderLog();
+new ResizeObserver(() => resize()).observe(board);
+const mql = window.matchMedia('(prefers-color-scheme: dark)'); mql.addEventListener && mql.addEventListener('change', redraw);
+new MutationObserver(redraw).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+const startMode = activeExam() && !activeExam().results ? 'exam' : LS.get('dif:mode', 'practice');
+mode = ''; setMode(['practice','today','exam','recog','history'].includes(startMode) ? startMode : 'practice');
+
+(async () => {
+  if (!window.claude || !window.claude.use){ disableTutor('The tutor works when this page is opened in the Claude app or on claude.ai. Recognize and the canvas work anywhere.'); return; }
+  try {
+    sample = await window.claude.use('sample');
+    if (!sample){ disableTutor("The tutor isn't available in this view. Open the page in the Claude app or on claude.ai."); }
+    else {
+      const lim = await sample.limits().catch(() => null);
+      canImages = !!(lim && lim.images);
+      if (!canImages) addMsg('sys', "This view can't send pictures of your work, so Check and Grade are off here. Typed questions still work.");
+    }
+  } catch { disableTutor("The tutor couldn't start. Reload the page."); }
+  try {
+    db = await window.claude.use('db');
+    if (db){
+      const snap = await Promise.race([db.doc('progress/main').get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]);
+      if (snap.exists){
+        const d = normProgress(JSON.parse(JSON.stringify(snap.data() || {})));
+        const merged = normProgress({});
+        for (const id of new Set([...Object.keys(d.log), ...Object.keys(progress.log)])){
+          const seen = new Set(), all = [...(d.log[id] || []), ...(progress.log[id] || [])].filter(e => { const k = e[0] + e[1]; if (seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => a[1] - b[1]);
+          merged.log[id] = all.slice(-12); merged.marks[id] = all.map(e => e[0]).join('').slice(-8);
+        }
+        const mk = new Set(); merged.mistakes = [...d.mistakes, ...progress.mistakes].filter(m => { const k = m.at + m.pid; if (mk.has(k)) return false; mk.add(k); return true; }).sort((a, b) => a.at < b.at ? -1 : 1).slice(-200);
+        const ek = new Set(); merged.exams = [...d.exams, ...progress.exams].filter(e => { if (ek.has(e.at)) return false; ek.add(e.at); return true; }).sort((a, b) => a.at - b.at).slice(-20);
+        for (const m of new Set([...Object.keys(d.recog), ...Object.keys(progress.recog)])){ const a = d.recog[m] || [0, 0], b = progress.recog[m] || [0, 0]; merged.recog[m] = a[1] >= b[1] ? a : b; }
+        merged.recogMiss = Object.assign({}, d.recogMiss, progress.recogMiss);
+        progress = merged; LS.set('dif:progress', progress);
+        buildPicker(); renderLog(); $('markhist').textContent = progress.marks[pid] || '';
+        if (mode === 'today') buildToday(false);
+      }
+      // push attempts saved on this device before the database answered
+      try {
+        const local = LS.get('dif:attempts', []).slice(0, 60);
+        if (local.length){
+          const snap = await db.collection('attempts').orderBy('start', 'desc').limit(1000).get();
+          const have = new Set(snap.docs.map(d => d.id));
+          for (const m of local.filter(m => !have.has(m.id))){
+            let packed = []; try { packed = JSON.parse(localStorage.getItem('dif:attink:' + m.id) || '[]'); } catch {}
+            await db.doc('attempts/' + m.id).set(m); await db.doc('attemptInk/' + m.id).set({ id: m.id, strokes: packed });
+          }
+        }
+      } catch {}
+      if (mode === 'history') renderHistory();
+    }
+  } catch { db = null; }
+})();
+})();
+</script>
+</body>
+</html>
