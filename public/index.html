@@ -529,7 +529,7 @@ function setMode(m){
   $('history').classList.toggle('hidden', m !== 'history');
   if (exRun) startExamClock(); else stopExamClock();
 }
-document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { if (b.dataset.mode === 'history'){ hist.pid = ''; hist.open = null; } setMode(b.dataset.mode); }));
 
 /* ---------------- Problem picker ---------------- */
 let pid = LS.get('dif:last', 'X3'); if (!BY[pid]) pid = 'X3';
@@ -1519,7 +1519,25 @@ const store = {
     try { for (let k = localStorage.length - 1; k >= 0; k--){ const key = localStorage.key(k); if (key && key.startsWith('dif:attink:') && !keep.has(key.slice(11))) localStorage.removeItem(key); } } catch {}
     if (!db) return;
     this.q = this.q.then(() => db.doc('attempts/' + meta.id).set(meta)).then(() => db.doc('attemptInk/' + meta.id).set({ id: meta.id, strokes: packed }))
-      .catch(e => { if (e && e.code === 'quota_exceeded') addMsg('sys', 'Your saved attempts are full. Delete a few old ones in History.'); else delete this.sigs[meta.id]; });
+      .then(() => { this.err = ''; })
+      .catch(e => { if (e && e.code === 'quota_exceeded') addMsg('sys', 'Your saved attempts are full. Delete a few old ones in History.'); delete this.sigs[meta.id]; this.err = (e && e.message) || 'Save failed (offline?)'; });
+  },
+  err: '',
+  async sync(){
+    if (!db) return { pushed: 0, failed: 0 };
+    const local = LS.get('dif:attempts', []);
+    let have;
+    try { const snap = await db.collection('attempts').orderBy('start', 'desc').limit(1000).get(); have = new Set(snap.docs.map(d => d.id)); }
+    catch (e) { this.err = (e && e.message) || 'Could not reach your account.'; return { pushed: 0, failed: local.length }; }
+    let pushed = 0, failed = 0;
+    for (const m of local.filter(m => !have.has(m.id))){
+      let packed = []; try { packed = JSON.parse(localStorage.getItem('dif:attink:' + m.id) || '[]'); } catch {}
+      try { const meta = { ...m }; delete meta.autoMark; await db.doc('attempts/' + m.id).set(meta); await db.doc('attemptInk/' + m.id).set({ id: m.id, strokes: packed }); pushed++; }
+      catch (e) { failed++; this.err = (e && e.message) || 'Save failed.'; }
+    }
+    if (!failed) this.err = '';
+    this.cache = null;
+    return { pushed, failed };
   },
   async list(force){
     if (this.cache && !force) return this.cache;
@@ -1528,6 +1546,7 @@ const store = {
       try {
         const snap = await Promise.race([db.collection('attempts').orderBy('start', 'desc').limit(1000).get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]);
         const remote = snap.docs.map(d => ({ ...d.data() }));
+        this.remoteIds = new Set(remote.map(a => a.id));
         const ids = new Set(remote.map(a => a.id));
         list = [...remote, ...list.filter(a => !ids.has(a.id))];
       } catch {}
@@ -1571,9 +1590,19 @@ async function renderHistory(){
       <div class="stat"><div class="n sc-bad">${cnt('missed')}</div><div class="l">missed</div></div>
       <div class="stat"><div class="n">${all.filter(a => a.start > wk).length}</div><div class="l">this week</div></div>
     </div>
+    <div class="box" id="hsync" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px"></div>
     <div class="filters" id="hfilters"></div>
     <div class="hlist" id="hlist"></div>
   </div>`;
+  const S = $('hsync');
+  const localOnly = all.filter(a => !store.remoteIds || !store.remoteIds.has(a.id)).length;
+  if (!db) S.innerHTML = '<span class="note">Saved on this device only. Sign in again to save to your account.</span>';
+  else if (store.err || localOnly){
+    S.innerHTML = `<span class="sc-mid" style="font-weight:600">${localOnly ? localOnly + ' attempt' + (localOnly > 1 ? 's are' : ' is') + ' only on this device.' : 'Last save to your account failed.'}</span><span class="note">${esc(store.err || '')}</span>`;
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = 'Sync now';
+    b.onclick = async () => { b.disabled = true; b.textContent = 'Syncing…'; await store.sync(); renderHistory(); };
+    S.appendChild(b);
+  } else S.innerHTML = '<span class="sc-ok" style="font-weight:600">✓ Everything is saved to your account.</span>';
   const F = $('hfilters');
   for (const [k, label] of [['all', 'All'], ['solved', 'Solved alone'], ['help', 'Needed help'], ['missed', 'Missed'], ['open', 'Unfinished']]){
     const b = document.createElement('button'); b.className = 'chip'; b.textContent = label; b.setAttribute('aria-pressed', hist.filter === k ? 'true' : 'false');
@@ -1806,40 +1835,30 @@ mode = ''; setMode(['practice','today','exam','recog','history'].includes(startM
       if (!canImages) addMsg('sys', "This view can't send pictures of your work, so Check and Grade are off here. Typed questions still work.");
     }
   } catch { disableTutor("The tutor couldn't start. Reload the page."); }
-  try {
-    db = await window.claude.use('db');
-    if (db){
-      const snap = await Promise.race([db.doc('progress/main').get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]);
-      if (snap.exists){
-        const d = normProgress(JSON.parse(JSON.stringify(snap.data() || {})));
-        const merged = normProgress({});
-        for (const id of new Set([...Object.keys(d.log), ...Object.keys(progress.log)])){
-          const seen = new Set(), all = [...(d.log[id] || []), ...(progress.log[id] || [])].filter(e => { const k = e[0] + e[1]; if (seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => a[1] - b[1]);
-          merged.log[id] = all.slice(-12); merged.marks[id] = all.map(e => e[0]).join('').slice(-8);
-        }
-        const mk = new Set(); merged.mistakes = [...d.mistakes, ...progress.mistakes].filter(m => { const k = m.at + m.pid; if (mk.has(k)) return false; mk.add(k); return true; }).sort((a, b) => a.at < b.at ? -1 : 1).slice(-200);
-        const ek = new Set(); merged.exams = [...d.exams, ...progress.exams].filter(e => { if (ek.has(e.at)) return false; ek.add(e.at); return true; }).sort((a, b) => a.at - b.at).slice(-20);
-        for (const m of new Set([...Object.keys(d.recog), ...Object.keys(progress.recog)])){ const a = d.recog[m] || [0, 0], b = progress.recog[m] || [0, 0]; merged.recog[m] = a[1] >= b[1] ? a : b; }
-        merged.recogMiss = Object.assign({}, d.recogMiss, progress.recogMiss);
-        progress = merged; LS.set('dif:progress', progress);
-        buildPicker(); renderLog(); $('markhist').textContent = progress.marks[pid] || '';
-        if (mode === 'today') buildToday(false);
-      }
-      // push attempts saved on this device before the database answered
-      try {
-        const local = LS.get('dif:attempts', []).slice(0, 60);
-        if (local.length){
-          const snap = await db.collection('attempts').orderBy('start', 'desc').limit(1000).get();
-          const have = new Set(snap.docs.map(d => d.id));
-          for (const m of local.filter(m => !have.has(m.id))){
-            let packed = []; try { packed = JSON.parse(localStorage.getItem('dif:attink:' + m.id) || '[]'); } catch {}
-            await db.doc('attempts/' + m.id).set(m); await db.doc('attemptInk/' + m.id).set({ id: m.id, strokes: packed });
+  try { db = await window.claude.use('db'); } catch { db = null; }
+  if (db){
+    try {
+        const snap = await Promise.race([db.doc('progress/main').get(), new Promise((_, rej) => setTimeout(() => rej('timeout'), 10000))]);
+        if (snap.exists){
+          const d = normProgress(JSON.parse(JSON.stringify(snap.data() || {})));
+          const merged = normProgress({});
+          for (const id of new Set([...Object.keys(d.log), ...Object.keys(progress.log)])){
+            const seen = new Set(), all = [...(d.log[id] || []), ...(progress.log[id] || [])].filter(e => { const k = e[0] + e[1]; if (seen.has(k)) return false; seen.add(k); return true; }).sort((a, b) => a[1] - b[1]);
+            merged.log[id] = all.slice(-12); merged.marks[id] = all.map(e => e[0]).join('').slice(-8);
           }
+          const mk = new Set(); merged.mistakes = [...d.mistakes, ...progress.mistakes].filter(m => { const k = m.at + m.pid; if (mk.has(k)) return false; mk.add(k); return true; }).sort((a, b) => a.at < b.at ? -1 : 1).slice(-200);
+          const ek = new Set(); merged.exams = [...d.exams, ...progress.exams].filter(e => { if (ek.has(e.at)) return false; ek.add(e.at); return true; }).sort((a, b) => a.at - b.at).slice(-20);
+          for (const m of new Set([...Object.keys(d.recog), ...Object.keys(progress.recog)])){ const a = d.recog[m] || [0, 0], b = progress.recog[m] || [0, 0]; merged.recog[m] = a[1] >= b[1] ? a : b; }
+          merged.recogMiss = Object.assign({}, d.recogMiss, progress.recogMiss);
+          progress = merged; LS.set('dif:progress', progress);
+          buildPicker(); renderLog(); $('markhist').textContent = progress.marks[pid] || '';
+          if (mode === 'today') buildToday(false);
         }
-      } catch {}
-      if (mode === 'history') renderHistory();
-    }
-  } catch { db = null; }
+    } catch (e) { store.err = (e && e.message) || 'Could not read your saved progress.'; }
+    await store.sync();
+    persistProgress();
+    if (mode === 'history') renderHistory();
+  }
 })();
 })();
 </script>
