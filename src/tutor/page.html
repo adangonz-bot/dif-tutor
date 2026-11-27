@@ -420,7 +420,27 @@ const M2C = { classify:['18'], dirfield:['18'], separable:['19'], linear1:['20']
 const FOCUS_TAGS = new Set(['quiz', 'hw', 'midterm', 'lecture']);
 let focus = (() => { try { const v = localStorage.getItem('dif:focus'); return v === null ? true : JSON.parse(v); } catch { return true; } })();
 const inFocus = p => !focus || FOCUS_TAGS.has(p.tag);
-const ALL_ORDER = BANK.sets.flatMap(s => P.filter(p => p.set === s.k).map(p => p.id));
+const SEC2HW = [[/§1\./, 1], [/§2\.[1-2]\b/, 2], [/§2\.[3-6]\b/, 3], [/§3\.[1-3]\b/, 4], [/§3\.[4-6]\b/, 5], [/§5\.[1-3]\b/, 6], [/§5\.4|§6\.[12]\b/, 7]];
+function catOf(p){
+  if (p.tag === 'midterm') return { key:'mid', group:0, n:0, label:'Midterm (Oct 3)', short:'Midterm' };
+  const q = /Review Quiz (\d+)/.exec(p.src);
+  if (q) return { key:'quiz' + q[1], group:1, n:+q[1], label:'Quiz ' + q[1], short:'Quiz ' + q[1] };
+  if (p.set === 'H') return { key:'guide', group:3, n:0, label:"Prof's study guide (power series)", short:'Study guide' };
+  if (p.tag === 'hw'){
+    const h = /HW (\d+)/.exec(p.src); let n = h ? +h[1] : 0;
+    if (!n) for (const [re, k] of SEC2HW) if (re.test(p.src)){ n = k; break; }
+    return { key:'hw' + n, group:2, n, label:'HW ' + (n || '?'), short:'HW ' + (n || '') };
+  }
+  if (p.tag === 'lecture') return { key:'lecture', group:4, n:0, label:'Lecture examples (§6.3 step functions)', short:'Lecture' };
+  return { key:'x' + p.set, group:5, n:BANK.sets.findIndex(s => s.k === p.set), label:'Extra practice · ' + ((BANK.sets.find(s => s.k === p.set) || {}).name || p.set), short:'Extra' };
+}
+const CAT = Object.fromEntries(P.map(p => [p.id, catOf(p)]));
+const qnumOf = p => { const m = /Q(\d+)/.exec(p.src.replace(/Review Quiz \d+/, '')); return m ? +m[1] : 0; };
+const secKey = p => { const m = /§(\d+)\.(\d+)\s*#(\d+)/.exec(p.src); return m ? +m[1] * 1e4 + +m[2] * 100 + +m[3] : 9e5; };
+const ALL_ORDER = P.slice().sort((a, b) => {
+  const A = CAT[a.id], B = CAT[b.id];
+  return A.group - B.group || A.n - B.n || qnumOf(a) - qnumOf(b) || (A.group === 2 ? secKey(a) - secKey(b) : 0) || BANK.sets.findIndex(s => s.k === a.set) - BANK.sets.findIndex(s => s.k === b.set) || P.indexOf(a) - P.indexOf(b);
+}).map(p => p.id);
 let ORDER = ALL_ORDER.filter(id => inFocus(BY[id]));
 const $ = id => document.getElementById(id);
 const LS = {
@@ -509,27 +529,20 @@ function setMode(m){
   $('history').classList.toggle('hidden', m !== 'history');
   if (exRun) startExamClock(); else stopExamClock();
 }
-document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { if (b.dataset.mode === 'history'){ hist.pid = ''; hist.open = null; } setMode(b.dataset.mode); }));
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { if (b.dataset.mode === 'history'){ hist.pid = ''; hist.src = ''; hist.open = null; } setMode(b.dataset.mode); }));
 
 /* ---------------- Problem picker ---------------- */
 let pid = LS.get('dif:last', 'X3'); if (!BY[pid]) pid = 'X3';
 const sel = $('probsel');
-function optLabel(p){ const m = markSummary(p.id); return `${p.id} · ${p.src}${p.final ? '' : ' (not on final)'}${m ? '  ' + m : ''}`; }
+function optLabel(p){ const m = markSummary(p.id); const s = p.src.replace(/^Review Quiz \d+ /, '').replace(/^HW \d+ · /, '').replace(/^Your midterm \(Oct 3\) /, ''); return `${s} · ${p.id}${p.final ? '' : ' (not on final)'}${m ? '  ' + m : ''}`; }
 function buildPicker(){
   sel.innerHTML = '';
-  const qnum = p => { const m = /Quiz (\d+) Q(\d+)/.exec(p.src); return m ? +m[1] * 100 + +m[2] : 9999; };
-  const quizzes = P.filter(p => /^Review Quiz \d/.test(p.src)).sort((a, b) => qnum(a) - qnum(b));
-  if (quizzes.length){
-    const g = document.createElement('optgroup'); g.label = `★ All review quizzes 1–8 (${quizzes.length})`;
-    for (const p of quizzes){ const o = document.createElement('option'); o.value = p.id; o.textContent = optLabel(p); g.appendChild(o); }
-    sel.appendChild(g);
-  }
-  for (const s of BANK.sets){
-    const g = document.createElement('optgroup'); g.label = `${s.k === 'Q' ? 'Quizzes' : 'Set ' + s.k} · ${s.name}`;
-    const list = P.filter(p => p.set === s.k && (inFocus(p) || p.id === pid));
-    if (!list.length) continue;
-    for (const p of list){ const o = document.createElement('option'); o.value = p.id; o.textContent = optLabel(p); g.appendChild(o); }
-    sel.appendChild(g);
+  let g = null, cur = '';
+  for (const id of ALL_ORDER){
+    const p = BY[id]; if (!(inFocus(p) || id === pid)) continue;
+    const c = CAT[id];
+    if (c.key !== cur){ cur = c.key; g = document.createElement('optgroup'); g.label = c.label; sel.appendChild(g); }
+    const o = document.createElement('option'); o.value = id; o.textContent = optLabel(p); g.appendChild(o);
   }
   sel.value = pid;
 }
@@ -545,7 +558,7 @@ $('next').onclick = () => {
 const TAGNAME = { quiz:'Quiz', hw:'★ Graded HW', midterm:'Midterm', extra:'Extra', lecture:'Lecture example', practice:'Practice' };
 function showProblem(p, hideMeta){
   $('p-id').textContent = p.id;
-  const tg = $('p-tag'); tg.textContent = TAGNAME[p.tag] || p.tag; tg.className = 'tag ' + p.tag;
+  const tg = $('p-tag'); tg.textContent = CAT[p.id].group <= 2 ? CAT[p.id].short : (TAGNAME[p.tag] || p.tag); tg.className = 'tag ' + p.tag;
   $('p-src').textContent = p.src + (p.final ? '' : ' · not on the final');
   renderInto($('p-stmt'), p.stmt, false);
   $('markhist').textContent = progress.marks[p.id] || '';
@@ -1547,8 +1560,8 @@ const store = {
 };
 
 /* ---------------- History screen ---------------- */
-let hist = { filter:'all', pid:'', open:null };
-$('attbtn').onclick = () => { hist.pid = pid; hist.open = null; setMode('history'); };
+let hist = { filter:'all', pid:'', src:'', open:null };
+$('attbtn').onclick = () => { hist.pid = pid; hist.src = ''; hist.open = null; setMode('history'); };
 const fmtWhen = ms => new Date(ms).toLocaleString(undefined, { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' });
 const dur = sec => sec >= 3600 ? `${Math.floor(sec / 3600)} h ${Math.round(sec % 3600 / 60)} min` : sec >= 60 ? `${Math.round(sec / 60)} min` : `${sec} s`;
 async function renderHistory(){
@@ -1560,7 +1573,8 @@ async function renderHistory(){
   const wk = Date.now() - 7 * DAY;
   const done = all.filter(a => a.status !== 'open');
   const cnt = st => done.filter(a => a.status === st).length;
-  const list = all.filter(a => (hist.filter === 'all' || a.status === hist.filter) && (!hist.pid || a.pid === hist.pid));
+  const srcOf = a => { const c = CAT[a.pid]; return !c ? 'x' : c.group === 0 ? 'mid' : c.group === 1 ? 'quiz' : c.group === 2 ? 'hw' : c.group === 3 ? 'guide' : c.group === 4 ? 'lecture' : 'x'; };
+  const list = all.filter(a => (hist.filter === 'all' || a.status === hist.filter) && (!hist.pid || a.pid === hist.pid) && (!hist.src || srcOf(a) === hist.src || (CAT[a.pid] && CAT[a.pid].key === hist.src)));
   el.innerHTML = `<div class="panel">
     <h1>History</h1>
     <div class="stats">
@@ -1588,6 +1602,10 @@ async function renderHistory(){
     const b = document.createElement('button'); b.className = 'chip'; b.textContent = label; b.setAttribute('aria-pressed', hist.filter === k ? 'true' : 'false');
     b.onclick = () => { hist.filter = k; renderHistory(); }; F.appendChild(b);
   }
+  const ss = document.createElement('select'); ss.setAttribute('aria-label', 'Source');
+  const srcOpts = [['', 'Every source'], ['mid', 'Midterm'], ['quiz', 'All quizzes'], ...[1,2,3,4,5,6,7,8].map(n => ['quiz' + n, '  Quiz ' + n]), ['hw', 'All HW'], ...[1,3,4,5,6,7].map(n => ['hw' + n, '  HW ' + n]), ['guide', 'Study guide'], ['lecture', 'Lecture examples'], ['x', 'Extra practice']];
+  ss.innerHTML = srcOpts.map(([v, l]) => `<option value="${v}">${esc(l)}</option>`).join('');
+  ss.value = hist.src; ss.onchange = () => { hist.src = ss.value; hist.pid = ''; renderHistory(); }; F.appendChild(ss);
   const sp = document.createElement('select'); sp.setAttribute('aria-label', 'Problem');
   sp.innerHTML = '<option value="">Every problem</option>' + [...new Set(all.map(a => a.pid))].sort((a, b) => ALL_ORDER.indexOf(a) - ALL_ORDER.indexOf(b)).map(id => `<option value="${esc(id)}">${esc(id)}${BY[id] ? ' · ' + esc(BY[id].src) : ''}</option>`).join('');
   sp.value = hist.pid; sp.onchange = () => { hist.pid = sp.value; renderHistory(); }; F.appendChild(sp);
@@ -1598,7 +1616,7 @@ async function renderHistory(){
     const b = document.createElement('button'); b.className = 'hcard';
     const score = a.score !== null && a.score !== undefined ? ` · ${a.score}/10` : '';
     b.innerHTML = `<span class="badge ${esc(a.status)}">${esc(STATUS_SHORT[a.status] || a.status)}</span>
-      <span class="what">${esc(a.pid)} <span class="note" style="font-weight:400">${p ? esc(METH[p.method] ? METH[p.method].name : '') : ''}</span></span>
+      <span class="what">${esc(CAT[a.pid] ? CAT[a.pid].short + ' · ' : '')}${esc(p ? p.src.replace(/^Review Quiz \d+ /, '').replace(/^HW \d+ · /, '').replace(/^Your midterm \(Oct 3\) /, '') : a.pid)} <span class="note" style="font-weight:400">${p ? esc(METH[p.method] ? METH[p.method].name : '') : ''}</span></span>
       <span class="when">${esc(fmtWhen(a.start))}</span>
       <span class="sub">${esc(a.mode === 'exam' ? 'Mock exam' + score : a.mode === 'today' ? 'Today queue' : 'Practice')} · ${esc(dur(a.secs || Math.round(((a.end || a.start) - a.start) / 1000)))}${helpText(a) ? ' · ' + esc(helpText(a)) : ''}</span>`;
     b.onclick = () => { hist.open = a.id; renderAttempt(a.id); };
