@@ -413,10 +413,10 @@ async function loadBank(){
 const BANK = await loadBank();
 const P = BANK.problems, BY = Object.fromEntries(P.map(p => [p.id, p])), METH = BANK.methods;
 const CARDS = __CARDS__;
-const M2C = { classify:['18'], dirfield:['18'], separable:['19'], linear1:['20'], eu:['21'], exact:['22'], exactmu:['22'], model:['30'],
-  const2:['23'], euler:['6'], wronskian:['24'], reduction:['25'], uc:['26'], vop:['27'],
-  series_basics:['1'], taylor:['1','2'], shift:['3'], series_sol:['4'], radius:['5'], taylor_ode:['5'], singular:['7'],
-  lap_def:['8','10'], lap_inv:['12','12b'], lap_ivp:['11','12'], step:['15','16'], step_ivp:['17'] };
+const M2C = { classify:['V'], dirfield:['M1'], separable:['M2'], linear1:['M3'], eu:['M4'], exact:['M5'], exactmu:['M5'], model:['M9'],
+  const2:['M6','M11'], euler:['M6E'], wronskian:['M7'], reduction:['M8'], uc:['UC'], vop:['M10'],
+  series_basics:['S1','S2'], taylor:['S2'], shift:['S3'], series_sol:['S4','S7'], radius:['S5'], taylor_ode:['S5'], singular:['S6'],
+  lap_def:['L1'], lap_inv:['L2','L6'], lap_ivp:['L3','L6'], step:['L4'], step_ivp:['L5','L4'] };
 const FOCUS_TAGS = new Set(['quiz', 'hw', 'midterm', 'lecture']);
 let focus = (() => { try { const v = localStorage.getItem('dif:focus'); return v === null ? true : JSON.parse(v); } catch { return true; } })();
 const inFocus = p => !focus || FOCUS_TAGS.has(p.tag);
@@ -1338,7 +1338,7 @@ document.addEventListener('keydown', e => {
 
 /* ---------------- Formula sheet drawer ---------------- */
 function sheetCards(p){
-  const fam = METH[p.method].fam, pl = fam === '1st' || fam === '2nd' ? '29' : '14';
+  const fam = METH[p.method].fam, pl = fam === '1st' || fam === '2nd' ? 'P' : 'P2';
   return [...(M2C[p.method] || []), pl].map(c => `card ${c} (${CARDS[c].title})`).join(', ');
 }
 const sheetEl = $('sheet'), sbody = $('sheetbody'), spage = $('sheetpage'), simg = $('sheetimg');
