@@ -1,0 +1,489 @@
+\documentclass[8pt]{extarticle}
+\usepackage[letterpaper,margin=0.17in,top=0.15in,bottom=0.15in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{multicol}
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\definecolor{navy}{HTML}{1F3864}
+\definecolor{grn}{HTML}{1E7B3A}
+\definecolor{amb}{HTML}{B45309}
+\definecolor{ambbg}{HTML}{FFF4E0}
+\definecolor{grnbg}{HTML}{EAF6EE}
+\definecolor{bluebg}{HTML}{EEF2F9}
+\pagestyle{empty}
+\setlength{\columnsep}{5pt}
+\setlength{\parindent}{0pt}
+\setlist{nosep,leftmargin=8.5pt,itemsep=0.15pt,topsep=0.3pt}
+\setlist[enumerate]{label=\textbf{\arabic*}}
+\newtcolorbox{card}[1]{enhanced,breakable,colback=white,colframe=navy,
+  coltitle=white,fonttitle=\bfseries,title={#1},
+  boxrule=0.45pt,arc=1.2pt,left=1.6pt,right=1.6pt,top=0.8pt,bottom=0.8pt,
+  toptitle=0.2pt,bottomtitle=0.2pt,before skip=1.6pt,after skip=1.6pt}
+\newtcolorbox{warn}[1]{enhanced,breakable,colback=ambbg,colframe=amb,
+  coltitle=white,fonttitle=\bfseries,title={#1},
+  boxrule=0.45pt,arc=1.2pt,left=1.6pt,right=1.6pt,top=0.8pt,bottom=0.8pt,
+  toptitle=0.2pt,bottomtitle=0.2pt,before skip=1.6pt,after skip=1.6pt}
+\newcommand{\key}[1]{\textcolor{grn}{\textbf{#1}}}
+\newcommand{\when}[1]{\textcolor{amb}{\textbf{Use when:}} #1\par}
+\newcommand{\chk}[1]{\par\textcolor{grn}{\textbf{Check:}} #1}
+\newcommand{\Lap}{\mathcal{L}}
+\newcommand{\Li}{\mathcal{L}^{-1}}
+\setlength{\abovedisplayskip}{0.5pt}\setlength{\belowdisplayskip}{0.5pt}
+\setlength{\abovedisplayshortskip}{0pt}\setlength{\belowdisplayshortskip}{0pt}
+\setlength{\tabcolsep}{2pt}
+\begin{document}
+\fontsize{6.5}{7.25}\selectfont
+{\fontsize{7.5}{8.5}\selectfont Name: \underline{\hspace{1.6in}} \; WSU ID: \underline{\hspace{1.1in}} \hfill Math 555 FS2026 Final --- step-by-step formula sheet (front: Ch 2--3 \textperiodcentered\ back: Ch 5--6)}\par\vspace{0.5pt}
+\begin{multicols*}{3}
+\raggedcolumns
+
+%======================= FRONT: CH 2-3 =======================
+\begin{card}{0 \;|\; Which method? Read the problem first}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{\dimexpr\linewidth-0.42in}@{\;}r@{}}
+\textbf{You see} & \textbf{Card}\\\hline
+order / linear? / ``verify $y$ solves'' & 18\\
+interval, ``without solving'' & 21\\
+$y'=f(x)g(y)$ factors apart & 19\\
+$y'$ and $y$ to 1st power, ``integrating factor'' & 20\\
+$M+Ny'=0$, ``exact'' & 22\\
+tank / salt / cooling / half-life & 30\\
+$ay''+by'+cy=0$, constants & 23\\
+$t^2y''+\alpha ty'+\beta y=0$ (power $=$ order) & 6 (back)\\
+Wronskian, Abel, fundamental set & 24\\
+given $y_1$, ``reduction of order'' & 25\\
+const.\ coeff., $g=$ poly/$e^{\alpha t}$/sin/cos, ``form of $Y$'' & 26\\
+$g=\tan,\sec,\csc,\ln t,\frac1t,\frac{e^t}{t}$, variable coeff., ``variation of parameters'' & 27
+\end{tabular}
+\end{card}
+
+\begin{card}{18 \;|\; Classify \& verify (\S1.3)}
+\begin{enumerate}
+\item \key{Order} $=$ highest derivative that appears.
+\item \key{Linear?} Can it be written $a_n(t)y^{(n)}+\dots+a_1(t)y'+a_0(t)y=g(t)$? \textbf{Nonlinear} if any $y^2$, $yy'$, $(y')^2$, $\sqrt y$, $\sin y$, $e^y$, $\frac1y$, or a coefficient containing $y$.
+\item \key{Homogeneous} if $g(t)=0$ after moving every $y$-term left.
+\item \key{Verify} $y=\phi(t)$: compute $\phi',\phi''$; substitute into the left side; simplify line by line until it equals the right side. Then plug $t_0$ into $\phi$, $\phi'$ for each IC.
+\item ``Find $r$ so $e^{rt}$ (or $t^r$) solves'': substitute, factor out $e^{rt}$ ($t^r$), solve the polynomial for $r$.
+\end{enumerate}
+\end{card}
+
+\begin{card}{21 \;|\; Existence \& uniqueness --- no solving (\S2.4)}
+\key{Thm 1 (linear; also 2nd order, Thm 3.2.1):}
+\begin{enumerate}
+\item Divide by the leading coefficient: $y'+p\,y=g$ \;(2nd: $y''+py'+qy=g$).
+\item List every $t$ where $p$, $q$ or $g$ breaks: denominator $=0$; $\ln u$ needs $u>0$; $\sqrt u$ needs $u\ge0$; $\tan,\sec$ at $\frac\pi2+k\pi$; $\cot,\csc$ at $k\pi$.
+\item Number line: mark those points and $t_0$.
+\item Answer $=$ the \textbf{open interval} between the nearest bad points on each side of $t_0$ ($\pm\infty$ allowed). Unique solution on all of it.
+\end{enumerate}
+\key{Thm 2 (nonlinear} $y'=f(t,y)$\key{):}
+\begin{enumerate}
+\item Solve for $y'$ to get $f(t,y)$. \;\item Compute $\partial f/\partial y$.
+\item Find where $f$ \textbf{or} $f_y$ breaks (in $t$ \textbf{and} $y$).
+\item Answer $=$ a \textbf{region}: all $(t,y)$ avoiding those; unique solution on some interval around $t_0$ if $(t_0,y_0)$ is inside.
+\end{enumerate}
+\end{card}
+
+\begin{card}{19 \;|\; Separable (\S2.2)}
+\when{$y'=f(x)\,g(y)$ splits into an $x$-part times a $y$-part.}
+\begin{enumerate}
+\item Write $\frac{dy}{dx}=f(x)\,g(y)$ (factor numerator/denominator).
+\item \key{Equilibria:} every root of $g(y)=0$ is a constant solution $y\equiv c$. Write them down.
+\item Separate: $\dfrac{dy}{g(y)}=f(x)\,dx$.
+\item Integrate both sides; \textbf{one} $+C$ on the right.
+\item Apply the IC \textbf{now} to get $C$.
+\item Solve for $y$ if asked ``explicitly''. With $\pm$, $\sqrt{\ }$, $\arcsin$: the IC picks the sign/branch.
+\item \key{Interval:} contains $x_0$; stop where the formula is undefined or where the denominator of $y'$ is $0$ (vertical tangent): set it $=0$, solve for $y$, back out $x$.
+\end{enumerate}
+\chk{differentiate your $y$, substitute into $y'=f\,g$; $y(x_0)=y_0$.}
+\end{card}
+
+\begin{card}{20 \;|\; Linear 1st order --- integrating factor (\S2.1)}
+\when{$P(t)y'+Q(t)y=G(t)$, $y$ and $y'$ to the 1st power.}
+\begin{enumerate}
+\item \key{Standard form:} divide \textbf{every term} by $P$: \;$y'+p(t)\,y=g(t)$.
+\item $\mu=e^{\int p\,dt}$ (no $+C$). Simplify: $e^{a\ln t}=t^a$, $e^{\ln|u|}=|u|$.
+\item Multiply the standard form by $\mu$; the left side is now $(\mu y)'$:\; $(\mu y)'=\mu g$.
+\item Integrate: \;$\mu y=\int\mu g\,dt+C$ \;(the $C$ goes in \textbf{here}).
+\item Divide by $\mu$: \;$y=\dfrac1\mu\Big[\displaystyle\int\mu g\,dt+C\Big]$.
+\item IC: plug $(t_0,y_0)$, solve for $C$.
+\item Interval: where $p,g$ are continuous, containing $t_0$.
+\end{enumerate}
+\key{As $t\to\infty$:} $e^{-kt}\to0$; ``stays bounded'' $\iff$ coefficient of the growing exponential $=0$ $\Rightarrow$ solve for $y_0$. Limit of $\frac{\int}{e^{\dots}}$ ($\infty/\infty$): L'H\^opital $+$ FTC.
+\chk{$y'+py=g$ and $y(t_0)=y_0$.}
+\end{card}
+
+\begin{card}{22 \;|\; Exact equations \& integrating factor (\S2.6)}
+\begin{enumerate}
+\item Write $M(x,y)\,dx+N(x,y)\,dy=0$ ($M$ = term without $y'$, $N$ = coefficient of $y'$).
+\item \key{Test:} compute $M_y$ and $N_x$. Write ``$M_y=\dots=N_x$, exact''.
+\item $\psi=\int M\,dx$ (hold $y$ constant) $+\,h(y)$.
+\item $\psi_y=\frac{\partial}{\partial y}(\text{step 3})+h'(y)$; set it $=N$.
+\item Solve for $h'(y)$ (all $x$'s must cancel), integrate to get $h(y)$, no $C$.
+\item Answer: $\psi(x,y)=C$ (implicit). IC $\to C$; solve for $y$ only if asked (IC picks the branch).
+\end{enumerate}
+\key{Not exact ($M_y\ne N_x$):}
+\begin{enumerate}[resume]
+\item $\dfrac{M_y-N_x}{N}$ depends on $x$ only $\Rightarrow\mu(x)=e^{\int\frac{M_y-N_x}{N}dx}$.
+\item Else $\dfrac{N_x-M_y}{M}$ depends on $y$ only $\Rightarrow\mu(y)=e^{\int\frac{N_x-M_y}{M}dy}$.
+\item Multiply $M$ and $N$ by $\mu$; \textbf{redo the test} (show it passes); go to step 3.
+\end{enumerate}
+\chk{$\psi_x=M$, $\psi_y=N$.}
+\end{card}
+
+\begin{card}{30 \;|\; Modeling (\S2.3)}
+\key{Mixing tank:}
+\begin{enumerate}
+\item $Q(t)=$ amount of salt; $Q(0)=$ starting amount ($0$ if pure water).
+\item Volume $V(t)=V_0+(r_{in}-r_{out})\,t$ (constant if rates equal).
+\item \textbf{Rate in} $=r_{in}\cdot c_{in}$ \;($c_{in}=0$ for fresh water).
+\item \textbf{Rate out} $=r_{out}\cdot\dfrac{Q}{V(t)}$.
+\item $\dfrac{dQ}{dt}=\text{in}-\text{out}$ $\Rightarrow$ linear, card 20. Apply $Q(0)$.
+\item Answer what's asked: $Q(T)$; concentration $Q/V$; $\lim_{t\to\infty}Q$; time to reach a level (solve with $\ln$).
+\end{enumerate}
+\key{Newton cooling:} $T'=-k(T-T_s)$ $\Rightarrow$ $T=T_s+(T_0-T_s)e^{-kt}$.
+\begin{enumerate}
+\item Use the second reading $T(t_1)=T_1$: \;$k=\dfrac1{t_1}\ln\dfrac{T_0-T_s}{T_1-T_s}$.
+\item Time to reach $T^*$: \;$t^*=\dfrac1k\ln\dfrac{T_0-T_s}{T^*-T_s}$.
+\end{enumerate}
+\key{Growth/decay:} $y=y_0e^{kt}$; half-life $\tau=\frac{\ln2}{|k|}$.
+\end{card}
+
+\begin{card}{23 \;|\; 2nd order, constant coefficients (\S3.1--3.4)}
+\when{$ay''+by'+cy=0$ with constants $a,b,c$.}
+\begin{enumerate}
+\item Characteristic eq.: $y''\to r^2$, $y'\to r$, $y\to1$: \;$ar^2+br+c=0$.
+\item Roots: factor, or $r=\dfrac{-b\pm\sqrt{b^2-4ac}}{2a}$ (careful: $-b$).
+\item Pick the form:\\[0.5pt]
+\begin{tabular}{@{}l@{\;}l@{}}
+$b^2-4ac>0$, $r_1\ne r_2$: & $y=c_1e^{r_1t}+c_2e^{r_2t}$\\
+$=0$, repeated $r$: & $y=(c_1+c_2t)\,e^{rt}$\\
+$<0$, $r=\lambda\pm i\mu$: & $y=e^{\lambda t}(c_1\cos\mu t+c_2\sin\mu t)$
+\end{tabular}\\
+$\lambda=-\frac{b}{2a}$, \;$\mu=\frac{\sqrt{4ac-b^2}}{2a}$ (no $i$ in the answer).
+\item IVP: write $y'$ (product rule on $e^{\lambda t}\cos$, $te^{rt}$).
+\item Plug $t_0$ into $y$ and $y'$: two equations in $c_1,c_2$; solve. ($t_0\ne0$: use $e^{r(t-t_0)}$ basis.)
+\item Final answer with numbers.
+\end{enumerate}
+\chk{$y(t_0)$, $y'(t_0)$. All roots with negative real part $\Rightarrow y\to0$.}
+\end{card}
+
+\begin{card}{24 \;|\; Wronskian \& Abel (\S3.2)}
+\key{Wronskian:} \;\textbf{1} compute $y_1',y_2'$; \;\textbf{2} $W=\begin{vmatrix}y_1&y_2\\y_1'&y_2'\end{vmatrix}=y_1y_2'-y_1'y_2$, simplify (factor out exponentials); \;\textbf{3} $W\ne0$ at one point of $I$ $\Rightarrow$ fundamental set, $y=c_1y_1+c_2y_2$.\\
+\key{Abel (no $y_1,y_2$ needed):}
+\begin{enumerate}
+\item Standard form $y''+p\,y'+q\,y=0$; read $p$ (with its sign).
+\item Compute $\int p\,dt$.
+\item $W=C\,e^{-\int p\,dt}$; simplify ($e^{-a\ln t}=t^{-a}$). If $W(t_0)$ is given, solve for $C$.
+\end{enumerate}
+\key{``Verify Abel'':} compute $W$ from $y_1,y_2$ directly, then show it equals $Ce^{-\int p}$ for some $C$.
+\end{card}
+
+\begin{card}{25 \;|\; Reduction of order (\S3.4) --- \textnormal{use if named}}
+\when{one solution $y_1$ is given; find $y_2$.}
+\key{Way A --- formula:}
+\begin{enumerate}
+\item Standard form $y''+py'+qy=0$; read $p$.
+\item $e^{-\int p\,dt}$ (simplify).
+\item Divide by $y_1^2$: \;$\dfrac{e^{-\int p\,dt}}{y_1^2}$.
+\item Integrate it $=v$ (no $C$).
+\item $y_2=v\,y_1$; \;$y=c_1y_1+c_2y_2$.
+\end{enumerate}
+\key{Way B --- substitution (show the method):}
+\begin{enumerate}
+\item $y=v\,y_1$; \;$y'=v'y_1+vy_1'$; \;$y''=v''y_1+2v'y_1'+vy_1''$.
+\item Substitute into the \textbf{original} equation; group the $v''$, $v'$, $v$ terms.
+\item The $v$ terms cancel (their coefficient is the ODE applied to $y_1$, which is $0$) --- write that.
+\item Left with $A\,v''+B\,v'=0$. Let $w=v'$: $A\,w'+B\,w=0$ (separable).
+\item Solve for $w$ (simplest, no $C$); $v=\int w\,dt$ (no $C$).
+\item $y_2=v\,y_1$; drop any multiple of $y_1$; $y=c_1y_1+c_2y_2$.
+\end{enumerate}
+\chk{$W[y_1,y_2]\ne0$. Repeated root / Euler: $v=t$ or $v=\ln t$.}
+\end{card}
+
+\begin{card}{26 \;|\; Undetermined coefficients (\S3.5) --- \textnormal{final: write the FORM only}}
+\when{constant coefficients and $g$ = polynomial, $e^{\alpha t}$, $\sin/\cos\beta t$, or products/sums of these.}
+\begin{enumerate}
+\item Solve the homogeneous eq.\ (card 23): roots, $y_c$.
+\item Split $g=g_1+g_2+\cdots$, one type per piece.
+\item For each piece read $\alpha$ (in $e^{\alpha t}$, else $0$), $\beta$ (in $\cos\beta t$, else $0$), $n$ (polynomial degree).
+\item Base form (full polynomial of degree $n$; \textbf{both} cos and sin):\\[0.5pt]
+\begin{tabular}{@{}l@{\;$\to$\;}l@{}}
+$P_n(t)$ & $A_nt^n+\dots+A_1t+A_0$\\
+$P_n(t)e^{\alpha t}$ & $(A_nt^n+\dots+A_0)e^{\alpha t}$\\
+$P_ne^{\alpha t}\!\!\begin{smallmatrix}\cos\\\sin\end{smallmatrix}\!\beta t$ & $e^{\alpha t}[(A_nt^n{+}\dots)\cos\beta t$\\
+ & $\quad+(B_nt^n{+}\dots)\sin\beta t]$
+\end{tabular}
+\item \key{Resonance:} $s=$ number of times $\alpha+i\beta$ is a root of the char.\ eq.\ ($s=0,1,2$). Multiply that piece's form by $t^s$.
+\item $Y=$ sum of the pieces' forms. \textbf{Final exam: stop here.}
+\item (If solving) substitute $Y$, match coefficients, solve for $A$'s, $B$'s; $y=y_c+Y$; ICs last, on the full $y$.
+\end{enumerate}
+\end{card}
+
+\begin{card}{27 \;|\; Variation of parameters (\S3.6) --- \textnormal{use if named}}
+\when{$g=\tan,\sec,\csc,\ln t,\frac1t,\frac{e^t}{t}$\dots\ (not UC type), variable coefficients, or the problem says VoP.}
+\begin{enumerate}
+\item Homogeneous solutions $y_1,y_2$: card 23; $t^2y''$-type $\Rightarrow$ Euler, card 6 (back); or given.
+\item \key{Standard form:} divide \textbf{every} term, including the right side, by the leading coefficient $\Rightarrow$ $y''+py'+qy=g(t)$. Write $g$.
+\item $W=y_1y_2'-y_1'y_2$. Simplify fully.
+\item $u_1'=\dfrac{-\,y_2\,g}{W}$ \;(the minus!). Simplify (cancel exponentials, trig identities).
+\item $u_2'=\dfrac{y_1\,g}{W}$. Simplify.
+\item $u_1=\int u_1'\,dt$, \;$u_2=\int u_2'\,dt$, no $+C$ (card 28).
+\item $Y=u_1y_1+u_2y_2$. Simplify; drop any term that is a constant times $y_1$ or $y_2$.
+\item $y=c_1y_1+c_2y_2+Y$. ICs on the full $y$.
+\end{enumerate}
+\key{Where 4--5 come from:} $Y=u_1y_1+u_2y_2$ with \;$u_1'y_1+u_2'y_2=0$, \;$u_1'y_1'+u_2'y_2'=g$; solve the $2\times2$ system (Cramer).\\
+One line: $Y=-y_1\!\displaystyle\int\!\frac{y_2g}{W}dt+y_2\!\int\!\frac{y_1g}{W}dt$.
+\chk{substitute $Y$ into the \textbf{original} equation.}
+\end{card}
+
+
+\begin{card}{31 \;|\; Solving for $c_1,c_2$ (IVPs, VoP system)}
+$\begin{cases}a\,c_1+b\,c_2=e\\ c\,c_1+d\,c_2=f\end{cases}\Rightarrow\; c_1=\dfrac{ed-bf}{ad-bc},\;\; c_2=\dfrac{af-ce}{ad-bc}$\\
+Or: solve the simpler equation for one unknown, substitute. Always plug both back in.
+\end{card}
+
+\begin{warn}{29 \;|\; Ch 2--3 point-losers}
+\begin{itemize}
+\item Reading $p$ or $g$ \textbf{before} standard form (integrating factor, Abel, VoP, E\&U, reduction).
+\item Adding $C$ after dividing by $\mu$; losing $|\cdot|$, $\pm$ or the equilibrium solutions.
+\item Exact: $h$ as a constant instead of $h(y)$; not showing the test before \emph{and} after $\mu$.
+\item Thm 1 $\to$ interval; Thm 2 $\to$ region; forgetting $f_y$.
+\item Complex roots: not halving; $-b$ sign; $i$ left in the answer.
+\item VoP: minus on $u_1'$; $W$ missing; $g$ not divided. UC: missing $t^s$, only $\cos$ written.
+\end{itemize}
+\end{warn}
+
+\end{multicols*}
+\newpage
+\fontsize{6.3}{6.95}\selectfont
+\begin{multicols*}{3}
+\raggedcolumns
+%======================= BACK: CH 5-6 =======================
+\begin{card}{0b \;|\; Which method? (Ch 5--6)}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{\dimexpr\linewidth-0.42in}@{\;}r@{}}
+\textbf{You see} & \textbf{Card}\\\hline
+radius / interval of convergence & 1\\
+sum of a geometric/known series & 1, 2\\
+``write as one series'', shift index & 3\\
+series solution about $x_0$ (ordinary pt) & 4\\
+lower bound for radius; $\phi''(x_0),\phi'''(x_0)$ & 5\\
+$x^2y''+\alpha xy'+\beta y=0$ & 6\\
+regular / irregular singular point & 7\\
+$\Lap\{f\}$ ``from the definition'' & 8\\
+products/powers of trig, $\cosh$ & 10\\
+solve an IVP with Laplace & 11\\
+$\Li\{F\}$, partial fractions & 12, 12b\\
+piecewise $f$ $\to$ step functions & 15\\
+$u_c(t)f(t)$, $e^{-cs}F(s)$, $e^{ct}f(t)$ & 16\\
+IVP with piecewise / switched forcing & 17
+\end{tabular}
+\end{card}
+
+\begin{card}{1 \;|\; Power series, radius, interval (\S5.1)}
+$\sum_{n=0}^\infty a_n(x-x_0)^n$: center $x_0$.\\
+\key{Radius \& interval of convergence:}
+\begin{enumerate}
+\item Write the general term $T_n=a_n(x-x_0)^n$.
+\item Ratio: $\left|\dfrac{T_{n+1}}{T_n}\right|=\left|\dfrac{a_{n+1}}{a_n}\right||x-x_0|$; simplify (cancel powers, factorials: $\frac{(n+1)!}{n!}=n+1$).
+\item $L=|x-x_0|\cdot\lim_{n\to\infty}\left|\frac{a_{n+1}}{a_n}\right|$ (limit in $n$, not $x$!).
+\item $L<1$ $\Rightarrow$ $|x-x_0|<\rho$; \;$\rho=\lim\left|\frac{a_n}{a_{n+1}}\right|$ ($\rho=\infty$ if the limit is $0$).
+\item \key{Endpoints} $x=x_0\pm\rho$: plug in, test each series: terms $\not\to0$ $\Rightarrow$ diverges; alternating $\pm b_n$, $b_n\downarrow0$ $\Rightarrow$ converges; $\sum\frac1{n^p}$ converges iff $p>1$.
+\item Interval with the right brackets $(\;)$ or $[\;]$.
+\end{enumerate}
+\key{Geometric:} $\sum_{n=k}^\infty ar^n=\dfrac{\text{first term}}{1-r}$, $|r|<1$. Rewrite $\frac{c^{n+m}}{d^n}=c^m\big(\frac cd\big)^n$.\\
+\key{Taylor:} $a_n=\dfrac{f^{(n)}(x_0)}{n!}$. Equal series $\iff$ all coefficients equal.
+\end{card}
+
+\begin{card}{2 \;|\; Standard series}
+$\frac1{1-x}=\sum x^n$ ($|x|<1$); \;$e^x=\sum\frac{x^n}{n!}$; \;$\sin x=\sum\frac{(-1)^nx^{2n+1}}{(2n+1)!}$; \;$\cos x=\sum\frac{(-1)^nx^{2n}}{(2n)!}$; \;$\sinh,\cosh$: same, no $(-1)^n$; \;$\ln(1+x)=\sum_{n\ge1}\frac{(-1)^{n+1}x^n}{n}$; \;$\frac1{1+x^2}=\sum(-1)^nx^{2n}$. \;Substitute $x\to -x,\,x^2,\,kx$.\\
+$e^{x^2/2}=\sum\frac{x^{2n}}{2^nn!}$; \;$2\cdot4\cdots(2n)=2^nn!$; \;$1\cdot3\cdots(2n-1)=\frac{(2n)!}{2^nn!}$
+\end{card}
+
+\begin{card}{3 \;|\; Derivatives \& index shifts}
+$y=\sum_{n=0}a_nx^n$, \;$y'=\sum_{n=1}na_nx^{n-1}$, \;$y''=\sum_{n=2}n(n-1)a_nx^{n-2}$\\
+\key{Combine into one series:}
+\begin{enumerate}
+\item Move outside powers inside: $x^k\sum a_nx^{n}=\sum a_nx^{n+k}$.
+\item Shift each so the power is $x^n$: power $x^{n+j}$ $\Rightarrow$ replace $n$ by $n-j$ inside, add $j$ to the lower limit.\\ ($\sum_{n=2}n(n{-}1)a_nx^{n-2}=\sum_{n=0}(n{+}2)(n{+}1)a_{n+2}x^n$)
+\item Find the largest lower limit $N$.
+\item Peel off the terms below $N$ from the other sums (write them out).
+\item One sum from $N$: $\sum_{n=N}[\dots]x^n$ $+$ peeled terms.
+\end{enumerate}
+\chk{plug $n=$ first index into the old and new form: same term.}
+\end{card}
+
+\begin{card}{4 \;|\; Series solution, ordinary point (\S5.2)}
+\when{$P(x)y''+Q(x)y'+R(x)y=0$ and $P(x_0)\ne0$.}
+\begin{enumerate}
+\item $x_0\ne0$: let $t=x-x_0$, rewrite $P,Q,R$ in $t$ (e.g.\ $x=t+x_0$); solve in $t$.
+\item Write $y=\sum a_nx^n$, $y'$, $y''$ (card 3).
+\item Substitute; distribute coefficients into the sums ($x^k$ inside).
+\item Shift every sum to $x^n$; peel to a common start (card 3).
+\item Set each coefficient $=0$: the peeled ones give $a_2,a_3$\dots; the bracket gives the \key{recurrence} $a_{n+2}=\dots$, valid for $n\ge N$ (write the range).
+\item $a_0,a_1$ are free ($a_0=y(x_0)$, $a_1=y'(x_0)$ for an IVP). Compute $a_2,a_3,\dots,a_7$ in terms of $a_0,a_1$.
+\item $y_1$: all terms with $a_0$ (set $a_0=1,a_1=0$); $y_2$: all with $a_1$ ($a_0=0,a_1=1$).
+\item Answer $y=a_0y_1+a_1y_2$, 3--4 nonzero terms of each; general term if a pattern shows; closed form via card 2 if recognized.
+\end{enumerate}
+\key{Pattern:} $a_{n+2}=c_n\,a_n$ $\Rightarrow$ evens from $a_0$, odds from $a_1$; $a_{n+3}$ $\Rightarrow$ three chains ($a_2$ often $=0$).
+\chk{$W[y_1,y_2](x_0)=1\ne0$ $\Rightarrow$ fundamental set.}
+\end{card}
+
+\begin{card}{5 \;|\; Radius lower bound \& Taylor method (\S5.3)}
+\key{Minimum radius (no solving):}
+\begin{enumerate}
+\item $p=\frac QP$, $q=\frac RP$; factor $P$ \textbf{completely}, including complex zeros ($x^2+a^2=(x-ia)(x+ia)$).
+\item Cancel common factors in $p$ and in $q$ \textbf{separately}.
+\item Singular points $=$ zeros left in either denominator.
+\item Distance from $x_0$ to each: real $|x_0-a|$; complex $\alpha\pm i\beta$: $\sqrt{(x_0-\alpha)^2+\beta^2}$.
+\item $\rho_{\min}=$ smallest distance (no singular points $\Rightarrow\infty$).
+\end{enumerate}
+\key{Taylor method} ($\phi''(x_0)$, $\phi'''(x_0)$\dots):
+\begin{enumerate}
+\item $\phi(x_0)$, $\phi'(x_0)$ from the ICs.
+\item Solve the ODE for $y''$, plug in $x_0$ $\Rightarrow\phi''(x_0)$.
+\item Differentiate the whole ODE (product rule on every coefficient) $\Rightarrow$ $y'''$; plug in $x_0$ using earlier values.
+\item Repeat for $\phi^{(4)}$. \;\item $\phi=\sum\frac{\phi^{(n)}(x_0)}{n!}(x-x_0)^n$.
+\end{enumerate}
+\end{card}
+
+\begin{card}{6 \;|\; Euler equations (\S5.4)}
+\when{$x^2y''+\alpha xy'+\beta y=0$: power of $x$ matches the derivative order. Also $at^2y''+bty'+cy=0$.}
+\begin{enumerate}
+\item Divide by the leading constant: $\alpha=\frac ba$, $\beta=\frac ca$.
+\item Try $y=x^r$: \;$F(r)=r(r-1)+\alpha r+\beta=0$; expand to $r^2+(\alpha-1)r+\beta=0$.
+\item Roots, then:\\[0.5pt]
+\begin{tabular}{@{}l@{\;}l@{}}
+real $r_1\ne r_2$: & $c_1|x|^{r_1}+c_2|x|^{r_2}$\\
+repeated $r$: & $(c_1+c_2\ln|x|)\,|x|^r$\\
+$r=\lambda\pm i\mu$: & $|x|^\lambda[c_1\cos(\mu\ln|x|)+c_2\sin(\mu\ln|x|)]$
+\end{tabular}
+\item Centered $(x-x_0)^2y''+\alpha(x-x_0)y'+\beta y$: same with $x\to x-x_0$.
+\item IVP: $y'$ by chain rule ($\frac{d}{dx}\ln x=\frac1x$); at $x_0=1$: $\ln1=0$.
+\end{enumerate}
+\end{card}
+
+\begin{card}{7 \;|\; Singular points: regular or irregular (\S5.4)}
+\begin{enumerate}
+\item Clear fractions so $P,Q,R$ are polynomials; singular points: $P(x_0)=0$ (also zeros of hidden denominators).
+\item $p=\frac QP$, $q=\frac RP$, simplified.
+\item At each singular $x_0$: \;$p_0=\lim\limits_{x\to x_0}(x-x_0)\,p$, \;$q_0=\lim\limits_{x\to x_0}(x-x_0)^2\,q$.
+\item \textbf{Both} finite $\Rightarrow$ \key{regular}; either infinite $\Rightarrow$ \key{irregular}. Do \textbf{every} singular point.
+\item (If asked) indicial eq.\ $r(r-1)+p_0r+q_0=0$.
+\end{enumerate}
+\end{card}
+
+\begin{card}{8 \;|\; Laplace transform from the definition (\S6.1)}
+\begin{enumerate}
+\item $F(s)=\displaystyle\int_0^\infty e^{-st}f(t)\,dt=\lim_{A\to\infty}\int_0^Ae^{-st}f\,dt$.
+\item Piecewise $f$: split the integral at every break; use each piece on its interval.
+\item Integrate: $\int e^{-st}dt=-\frac{e^{-st}}s$; $e^{at}e^{-st}=e^{-(s-a)t}$; $te^{-st}$ by parts: $-e^{-st}\big(\frac ts+\frac1{s^2}\big)$; $e^{-st}\!\cos/\sin$: card 28 with $a=-s$.
+\item Evaluate at $A$ and at $0$ (and at each break).
+\item $A\to\infty$: $A^ne^{-(s-a)A}\to0$ \textbf{needs $s>a$} --- state it.
+\item Answer $F(s)=\dots$, \;$s>a$.
+\end{enumerate}
+$\int_a^be^{-st}dt=\frac{e^{-as}-e^{-bs}}s$. \;\key{Linear:} $\Lap\{c_1f+c_2g\}=c_1F+c_2G$, but $\Lap\{fg\}\ne FG$.
+\end{card}
+
+\begin{card}{10 \;|\; Rewrite $f$ before transforming}
+$\cos^2t=\frac12(1+\cos2t)$; \;$\sin^2t=\frac12(1-\cos2t)$; \;$\sin t\cos t=\frac12\sin2t$; \;$\cosh^2t=\frac12(1+\cosh2t)$; \;$\cosh bt=\frac{e^{bt}+e^{-bt}}2$, $\sinh bt=\frac{e^{bt}-e^{-bt}}2$; \;$\sin(at+\phi)=\sin at\cos\phi+\cos at\sin\phi$; \;$(t+a)^2$: expand first. \;$\Lap\{t^nf\}=(-1)^nF^{(n)}(s)$.
+\end{card}
+
+\begin{card}{11 \;|\; Solving an IVP with Laplace (\S6.2)}
+\begin{enumerate}
+\item Transform every term: $\Lap\{y\}=Y$, \;$\Lap\{y'\}=sY-y(0)$, \;$\Lap\{y''\}=s^2Y-s\,y(0)-y'(0)$; right side $\to G(s)$ (table).
+\item Plug in the ICs right away.
+\item Collect: $(as^2+bs+c)\,Y-[\text{IC terms}]=G(s)$.
+\item $Y=\dfrac{G(s)+\text{IC terms}}{as^2+bs+c}$; combine into one fraction if needed.
+\item Partial fractions / complete the square (card 12).
+\item Invert term by term (table, card 12b).
+\end{enumerate}
+\chk{$y(0)$ and $y'(0)$ from your $y$.}
+\end{card}
+
+\begin{card}{12 \;|\; Inverting: partial fractions}
+\begin{enumerate}
+\item Proper? (deg top $<$ deg bottom) else long-divide.
+\item Factor the bottom fully: linear $(s-a)$, repeated $(s-a)^k$, irreducible $s^2+ps+q$ ($p^2<4q$).
+\item Template: $\frac{A}{s-a}$; \;$\frac{A_1}{s-a}+\dots+\frac{A_k}{(s-a)^k}$; \;$\frac{Bs+C}{s^2+ps+q}$.
+\item \key{Cover-up} for each simple linear factor: cover it, plug $s=a$ into the rest.
+\item Remaining constants: multiply through, match $s^2,s^1,s^0$ (or plug easy $s$ values).
+\item Quadratic: complete the square $s^2+ps+q=(s+\frac p2)^2+(q-\frac{p^2}4)=(s-\alpha)^2+\beta^2$.
+\item Split the top: $Bs+C=B(s-\alpha)+(C+B\alpha)$; make the sine numerator exactly $\beta$ (multiply and divide).
+\item Invert: $\frac{s-\alpha}{(s-\alpha)^2+\beta^2}\to e^{\alpha t}\cos\beta t$, \;$\frac{\beta}{(s-\alpha)^2+\beta^2}\to e^{\alpha t}\sin\beta t$.
+\end{enumerate}
+\chk{$f(0)=\lim_{s\to\infty}sF(s)$. Read: $s^2+b^2\to$ trig; $s^2-b^2\to$ hyperbolic; $(s-a)\to e^{+at}$.}
+\end{card}
+
+\begin{card}{12b \;|\; Ready-made inverses}
+\renewcommand{\arraystretch}{1.55}
+\begin{tabular}{@{}l@{\;$\Rightarrow$\;}l@{}}
+$\dfrac{As+B}{s^2+b^2}$ & $A\cos bt+\dfrac Bb\sin bt$\\
+$\dfrac{As+B}{s^2-b^2}$ & $A\cosh bt+\dfrac Bb\sinh bt$\\
+$\dfrac{As+B}{(s-a)^2+b^2}$ & $e^{at}\Big[A\cos bt+\dfrac{B+Aa}b\sin bt\Big]$\\
+$\dfrac{A}{(s-a)^{n+1}}$ & $\dfrac A{n!}t^ne^{at}$ \;\; $\dfrac1{s^{n+1}}\Rightarrow\dfrac{t^n}{n!}$\\
+$\dfrac1{(s-a)(s-c)}$ & $\dfrac{e^{at}-e^{ct}}{a-c}$ \;\; $\dfrac1{s(s^2+b^2)}\Rightarrow\dfrac{1-\cos bt}{b^2}$
+\end{tabular}
+\end{card}
+
+\begin{card}{15 \;|\; Step functions (\S6.3)}
+$u_c(t)=0$ for $t<c$, $1$ for $t\ge c$; \;$\Lap\{u_c\}=\frac{e^{-cs}}s$.\\
+\key{Piecewise $\to$ steps:}
+\begin{enumerate}
+\item Write $f=f_1$ on $[0,c_1)$, $f_2$ on $[c_1,c_2)$, $f_3$ on $[c_2,\infty)$.
+\item $f=f_1+(f_2-f_1)\,u_{c_1}(t)+(f_3-f_2)\,u_{c_2}(t)$ (each jump $=$ new $-$ old).
+\item On only for $a\le t<b$: $g(t)[u_a-u_b]$. Off after $c$: $g(t)[1-u_c]$.
+\item Check one $t$ in each interval.
+\end{enumerate}
+\key{Steps $\to$ piecewise:} add up which $u_c$ are $1$ on each interval.
+\end{card}
+
+\begin{card}{16 \;|\; Shift theorems (\S6.3)}
+\key{Forward: $\Lap\{u_c(t)\,g(t)\}$}
+\begin{enumerate}
+\item Read $c$. \;\item Rewrite $g$ in terms of $(t-c)$: $f(t)=g(t+c)$ (replace $t$ by $t+c$, expand).
+\item $\Lap\{u_c(t)g(t)\}=e^{-cs}\,\Lap\{g(t+c)\}=e^{-cs}F(s)$.
+\end{enumerate}
+\key{Inverse: $\Li\{e^{-cs}F(s)\}$}
+\begin{enumerate}
+\item Set $e^{-cs}$ aside. \;\item $f(t)=\Li\{F\}$ (card 12).
+\item Replace \textbf{every} $t$ by $t-c$; multiply by $u_c(t)$: \;$u_c(t)\,f(t-c)$.
+\end{enumerate}
+\key{$s$-shift:} $\Lap\{e^{ct}f\}=F(s-c)$; \;$\Li\{F(s-c)\}=e^{ct}f(t)$ (after completing the square: $(s+a)^2+b^2\Rightarrow e^{-at}$).
+\end{card}
+
+\begin{card}{17 \;|\; IVP with discontinuous forcing (\S6.3)}
+\begin{enumerate}
+\item Forcing $\to$ step functions (card 15).
+\item Transform each $u_c(t)g(t)$ with card 16 forward.
+\item Transform the left side (card 11), plug ICs, solve: $Y=\dfrac{\text{IC terms}}{as^2+bs+c}+\sum\pm e^{-cs}H(s)$, \;$H=\dfrac{\text{(numerator)}}{s\,(as^2+bs+c)}$ etc.
+\item Partial-fraction $H(s)$ \textbf{once} $\to h(t)=\Li\{H\}$.
+\item Each $\pm e^{-cs}H\to\pm u_c(t)\,h(t-c)$; invert the IC part as usual.
+\item $y=$ IC part $+\,h(t)\,+\sum\pm u_c(t)h(t-c)$; write it piecewise if asked.
+\end{enumerate}
+\chk{$y(0)$, $y'(0)$; $y$ and $y'$ continuous at each switch time.}
+\end{card}
+
+\begin{card}{28 \;|\; Integrals \& algebra you will need}
+$\int\frac{du}{u}=\ln|u|$; \;$\int\tan u=\ln|\sec u|$; \;$\int\cot u=\ln|\sin u|$; \;$\int\sec u=\ln|\sec u+\tan u|$; \;$\int\csc u=-\ln|\csc u+\cot u|$; \;$\int\sec^2u=\tan u$; \;$\int\csc^2u=-\cot u$; \;$\int\sec u\tan u=\sec u$\\
+$\int\frac{du}{a^2+u^2}=\frac1a\arctan\frac ua$; \;$\int\frac{u\,du}{a^2+u^2}=\frac12\ln(a^2+u^2)$; \;$\int\frac{du}{\sqrt{a^2-u^2}}=\arcsin\frac ua$\\
+\key{By parts} $\int u\,dv=uv-\int v\,du$ ($u$ = log, poly before exp/trig); \;$\int te^{at}=e^{at}\big(\frac ta-\frac1{a^2}\big)$; \;$\int\ln t=t\ln t-t$\\
+$\int e^{at}\cos bt=\frac{e^{at}(a\cos bt+b\sin bt)}{a^2+b^2}$; \;$\int e^{at}\sin bt=\frac{e^{at}(a\sin bt-b\cos bt)}{a^2+b^2}$\\
+$u$-sub: $\int\frac{F(\ln t)}{t}dt=\int F(u)du$; \;$\int f'(t)e^{f(t)}=e^{f(t)}$\\
+$\sin^2=\frac{1-\cos2t}2$, $\cos^2=\frac{1+\cos2t}2$, $\frac{\sin^2t}{\cos t}=\sec t-\cos t$, $2\sin t\cos t=\sin2t$\\
+$e^{a\ln t}=t^a$; \;$\ln a-\ln b=\ln\frac ab$; \;$(e^{\lambda t}\cos\mu t)'=e^{\lambda t}(\lambda\cos\mu t-\mu\sin\mu t)$; \;$(\cos(\mu\ln t))'=-\frac\mu t\sin(\mu\ln t)$
+\end{card}
+
+\begin{warn}{14 \;|\; Ch 5--6 point-losers}
+\begin{itemize}
+\item Shifts: limit moved the wrong way; terms not peeled; test $n=$ first index. Ratio test limit in $n$; endpoints tested.
+\item Radius: complex zeros; either $p$ or $q$; cancel first; measure from $x_0$.
+\item $\Li\{\frac k{s^2+b^2}\}=\frac kb\sin bt$; IC signs $-sy(0)-y'(0)$; jump $=$ new $-$ old; $\Li\{e^{-cs}F\}$: shift \textbf{every} $t$, keep $u_c$.
+\end{itemize}
+\end{warn}
+\end{multicols*}
+\end{document}
